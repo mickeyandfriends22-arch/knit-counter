@@ -72,6 +72,17 @@
                 return points.sort((a, b) => a.step - b.step);
             }, [currentProject.rules]);
 
+            // 入力中のルールのプレビュー計算
+            const rulePreview = useMemo(() => {
+                if (ruleEvery <= 0) return "";
+                let previewSteps = [];
+                const maxPreview = ruleTimes === 0 ? 5 : Math.min(ruleTimes, 5);
+                for (let i = 0; i < maxPreview; i++) {
+                    previewSteps.push(`${ruleStart + (i * ruleEvery)}段`);
+                }
+                return previewSteps.join(", ") + (ruleTimes === 0 || ruleTimes > 5 ? "･･･" : "");
+            }, [ruleStart, ruleEvery, ruleTimes]);
+
             useEffect(() => {
                 const activeRules = (currentProject.rules || []).filter(r => {
                     if (r.times === 0) return true;
@@ -175,7 +186,6 @@
 
                         <div style={{color: theme.danger, fontWeight: "bold", fontSize: 14, height: 20, marginBottom: 15}}>{warning}</div>
 
-                        {/* ボタンエリア: - は固定幅、+ は残り全部 */}
                         <div style={styles.btnContainer}>
                             <button className="btn-active" onClick={() => addCount(-1)} style={styles.minusBtn}>−</button>
                             <button className="btn-active" onClick={() => addCount(1)} style={styles.plusBtn}>＋</button>
@@ -216,7 +226,17 @@
                                     <StepInput label="間隔" value={ruleEvery} onChange={setRuleEvery} />
                                     <StepInput label="回数(0=無)" value={ruleTimes} onChange={setRuleTimes} />
                                 </div>
-                                内容<input type="text" value={ruleAction} onChange={e => setRuleAction(e.target.value)} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 16, marginTop: 5, marginBottom: 20 }} />
+                                <span style={{ fontSize: 11, opacity: 0.6, marginBottom: 4, display: "block" }}>内容</span>
+                                <input type="text" value={ruleAction} onChange={e => setRuleAction(e.target.value)} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 16, marginBottom: 20 }} />
+                                
+                                {/* プレビュー表示エリア */}
+                                <div style={{ marginBottom: 15, textAlign: "center", background: theme.inputBg, padding: "12px", borderRadius: "14px", border: `1px dashed ${theme.accent}44` }}>
+                                    <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4 }}>対象となる段数の例</div>
+                                    <div style={{ fontSize: 16, fontWeight: "bold", color: theme.accent, letterSpacing: "0.5px" }}>
+                                        {rulePreview || "間隔を入力してください"}
+                                    </div>
+                                </div>
+
                                 <button onClick={() => {
                                     updateProject({...currentProject, rules: [...(currentProject.rules || []), {start: ruleStart, every: ruleEvery, times: ruleTimes, action: ruleAction}]});
                                     setSettingsOpen(false);
