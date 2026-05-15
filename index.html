@@ -50,7 +50,7 @@
             
             const lastClickTime = useRef(0);
             const lastDelta = useRef(null); 
-            const lastAlertedCount = useRef(null);
+            const lastAlertedCount = useRef(null); // 最後にアラートを出した段数を記録
 
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
 
@@ -117,19 +117,16 @@
                 const diff = now - lastClickTime.current;
                 const isSameDirection = delta === lastDelta.current;
                 
-                // 同じボタンを2秒以内に連打した場合のみガード
                 if (isSameDirection && diff < 2000 && lastClickTime.current !== 0) {
                     setWarning({ message: "押し間違い！", type: "danger" });
                     setTimeout(() => setWarning({ message: null, type: null }), 1200);
                     return;
                 } 
                 
-                // 同じボタンを10秒以内に押した時は 🤔 表示
                 if (isSameDirection && diff < 10000 && lastClickTime.current !== 0) {
                     setWarning({ message: "🤔 連打中？", type: "warning" });
                     setTimeout(() => setWarning({ message: null, type: null }), 1500);
                 } else {
-                    // 逆方向の操作、または時間が経過している場合は警告をクリア
                     setWarning({ message: null, type: null });
                 }
 
@@ -141,11 +138,19 @@
 
                 if ("vibrate" in navigator) navigator.vibrate(15);
 
-                const hit = allMilestones.find(m => m.step === newCount);
-                if (delta > 0 && hit && lastAlertedCount.current !== newCount) {
-                    setActiveAlert(hit.action);
-                    lastAlertedCount.current = newCount;
+                // --- アラート制御の修正 ---
+                if (delta < 0) {
+                    // 戻したときは「直前のアラート履歴」を消去し、やり直しを可能にする
+                    lastAlertedCount.current = null;
+                } else {
+                    // 増やしたときに該当段数があればアラート
+                    const hit = allMilestones.find(m => m.step === newCount);
+                    if (hit && lastAlertedCount.current !== newCount) {
+                        setActiveAlert(hit.action);
+                        lastAlertedCount.current = newCount;
+                    }
                 }
+                // -----------------------
 
                 addHistory(newCount, delta > 0 ? "+1" : "-1");
             };
