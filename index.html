@@ -19,6 +19,7 @@
         .btn-active:active { transform: scale(0.96); opacity: 0.8; }
         .rule-card:active { opacity: 0.6; background: #D1E9FF; }
         .guide-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; color: white; text-align: center; }
+        .history-item { display: flex; justify-content: space-between; padding: 12px 0; }
     </style>
 </head>
 <body>
@@ -36,6 +37,7 @@
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [scheduleOpen, setScheduleOpen] = useState(false);
             const [showGuide, setShowGuide] = useState(false);
+            const [historyExpanded, setHistoryExpanded] = useState(false);
             const [editingRuleIndex, setEditingRuleIndex] = useState(null);
             const [darkMode, setDarkMode] = useState(() => {
                 const saved = localStorage.getItem("dark-mode");
@@ -126,7 +128,8 @@
                 sectionLabel: { fontSize: "13px", fontWeight: "bold", opacity: 0.5, margin: "25px 0 10px", display: "block" },
                 btnContainer: { display: "flex", gap: "15px", width: "100%", marginTop: "10px" },
                 minusBtn: { width: "80px", height: "85px", borderRadius: "25px", border: "none", fontSize: "32px", fontWeight: "bold", background: theme.gray, color: theme.text, display: "flex", alignItems: "center", justifyContent: "center" },
-                plusBtn: { flex: 1, height: "85px", borderRadius: "25px", border: "none", fontSize: "40px", fontWeight: "bold", background: theme.accent, color: "white", display: "flex", alignItems: "center", justifyContent: "center" }
+                plusBtn: { flex: 1, height: "85px", borderRadius: "25px", border: "none", fontSize: "40px", fontWeight: "bold", background: theme.accent, color: "white", display: "flex", alignItems: "center", justifyContent: "center" },
+                historyCard: { background: theme.card, borderRadius: "20px", padding: "5px 18px", marginBottom: 20 }
             };
 
             const StepInput = ({ label, value, onChange }) => (
@@ -141,6 +144,9 @@
             );
 
             const nextGoal = allMilestones.find(m => m.step > currentProject.count);
+            const history = currentProject.history || [];
+            const mainHistory = history.slice(0, 5);
+            const subHistory = history.slice(5, 15);
 
             return (
                 <div style={styles.container}>
@@ -221,15 +227,28 @@
                     <textarea style={{width:"100%", height:80, borderRadius:20, border:"none", padding:15, background:theme.card, color:theme.text, fontSize:16}} placeholder="サイズやメモ..." value={currentProject.memo || ""} onChange={e => updateProject({...currentProject, memo: e.target.value})} />
 
                     <span style={styles.sectionLabel}>履歴 (最新15件)</span>
-                    <div style={{background: theme.card, borderRadius: "20px", padding: "5px 15px", marginBottom: 20, maxHeight: "300px", overflowY: "auto"}}>
-                        {currentProject.history?.length === 0 ? <p style={{opacity:0.3, fontSize:13, textAlign:"center", padding: 10}}>履歴なし</p> :
-                            currentProject.history?.map((h, i) => (
-                                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: i === currentProject.history.length - 1 ? "none" : `1px solid ${darkMode ? "#2C2C2E" : "#EEE"}` }}>
+                    <div style={styles.historyCard}>
+                        {mainHistory.length === 0 ? <p style={{opacity:0.3, fontSize:13, textAlign:"center", padding: 15}}>履歴なし</p> :
+                            mainHistory.map((h, i) => (
+                                <div key={i} className="history-item" style={{ borderBottom: (i === mainHistory.length - 1 && !historyExpanded && subHistory.length === 0) ? "none" : `1px solid ${darkMode ? "#2C2C2E" : "#EEE"}` }}>
                                     <span style={{opacity:0.5, fontSize:13}}>{h.time}</span>
                                     <span style={{fontWeight:"bold", color: theme.accent}}>{h.count}段</span>
                                 </div>
                             ))
                         }
+                        
+                        {historyExpanded && subHistory.map((h, i) => (
+                            <div key={i+5} className="history-item" style={{ borderBottom: i === subHistory.length - 1 ? "none" : `1px solid ${darkMode ? "#2C2C2E" : "#EEE"}` }}>
+                                <span style={{opacity:0.5, fontSize:13}}>{h.time}</span>
+                                <span style={{fontWeight:"bold", color: theme.accent}}>{h.count}段</span>
+                            </div>
+                        ))}
+
+                        {subHistory.length > 0 && (
+                            <button onClick={() => setHistoryExpanded(!historyExpanded)} style={{ width: "100%", padding: "12px", border: "none", background: "none", color: theme.accent, fontSize: 13, fontWeight: "bold" }}>
+                                {historyExpanded ? "▲ 閉じる" : `▼ 残り${subHistory.length}件を表示`}
+                            </button>
+                        )}
                     </div>
 
                     {settingsOpen && (
