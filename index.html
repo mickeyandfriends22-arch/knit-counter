@@ -21,6 +21,7 @@
         .guide-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; color: white; text-align: center; }
         .history-item { display: flex; justify-content: space-between; padding: 12px 0; align-items: center; }
         .bg-illust { position: fixed; bottom: -20px; right: -20px; font-size: 150px; opacity: 0.05; z-index: -1; pointer-events: none; }
+        .warning-overlay { position: fixed; inset: 0; background: rgba(255, 59, 48, 0.9); display: flex; align-items: center; justify-content: center; z-index: 2500; color: white; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -35,6 +36,7 @@
             });
             const [selectedId, setSelectedId] = useState(() => Number(localStorage.getItem("selected-project")) || (projects[0]?.id));
             const [activeAlert, setActiveAlert] = useState(null);
+            const [warningMessage, setWarningMessage] = useState(null);
             const [ruleModalOpen, setRuleModalOpen] = useState(false);
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -46,7 +48,7 @@
                 return saved === null ? window.matchMedia('(prefers-color-scheme: dark)').matches : saved === "true";
             });
             
-            // 通知の重複防止用
+            const lastClickTime = useRef(0);
             const lastAlertedCount = useRef(null);
 
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
@@ -108,6 +110,36 @@
                 plusBtn: { flex: 1, height: "85px", borderRadius: "25px", border: "none", fontSize: "40px", fontWeight: "bold", background: theme.accent, color: "white", display: "flex", alignItems: "center", justifyContent: "center" }
             };
 
+            const handleCountChange = (delta) => {
+                const now = Date.now();
+                const diff = now - lastClickTime.current;
+                
+                // 誤操作チェック
+                if (diff < 2000) {
+                    setWarningMessage("押し間違い！");
+                    setTimeout(() => setWarningMessage(null), 1500);
+                    return;
+                } else if (diff < 10000) {
+                    setWarningMessage("押しすぎ注意！");
+                    setTimeout(() => setWarningMessage(null), 1500);
+                    return;
+                }
+                
+                lastClickTime.current = now;
+                const newCount = currentProject.count + delta;
+                if (newCount < 0) return;
+
+                if ("vibrate" in navigator) navigator.vibrate(15);
+
+                const hit = allMilestones.find(m => m.step === newCount);
+                if (delta > 0 && hit && lastAlertedCount.current !== newCount) {
+                    setActiveAlert(hit.action);
+                    lastAlertedCount.current = newCount;
+                }
+
+                addHistory(newCount, delta > 0 ? "+1" : "-1");
+            };
+
             const addHistory = (newCount, actionType) => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -159,20 +191,8 @@
                         </div>
                         <div style={styles.bigNumber}>{currentProject.count}</div>
                         <div style={styles.btnContainer}>
-                            <button className="btn-active" onClick={() => { if (currentProject.count > 0) { if ("vibrate" in navigator) navigator.vibrate(15); addHistory(currentProject.count - 1, "-1"); } }} style={styles.minusBtn}>−</button>
-                            <button className="btn-active" onClick={() => { 
-                                const newCount = currentProject.count + 1; 
-                                if ("vibrate" in navigator) navigator.vibrate(15); 
-                                
-                                const hit = allMilestones.find(m => m.step === newCount);
-                                // 前回の通知と異なる段数の場合のみ通知を出す
-                                if (hit && lastAlertedCount.current !== newCount) {
-                                    setActiveAlert(hit.action);
-                                    lastAlertedCount.current = newCount;
-                                }
-                                
-                                addHistory(newCount, "+1"); 
-                            }} style={styles.plusBtn}>＋</button>
+                            <button className="btn-active" onClick={() => handleCountChange(-1)} style={styles.minusBtn}>−</button>
+                            <button className="btn-active" onClick={() => handleCountChange(1)} style={styles.plusBtn}>＋</button>
                         </div>
                     </div>
 
@@ -285,6 +305,15 @@
                             <div style={{ textAlign: "center", color: "white" }}>
                                 <div style={{ fontSize: 80, fontWeight: "900" }}>{activeAlert}</div>
                                 <div style={{ marginTop: 40, padding: "15px 50px", border: "3px solid white", borderRadius: 20, fontWeight: "bold" }}>OK</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {warningMessage && (
+                        <div className="warning-overlay" onClick={() => setWarningMessage(null)}>
+                            <div>
+                                <div style={{fontSize: 60, marginBottom: 20}}>⚠️</div>
+                                <div style={{fontSize: 40}}>{warningMessage}</div>
                             </div>
                         </div>
                     )}
