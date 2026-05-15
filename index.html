@@ -27,9 +27,9 @@
         function App() {
             const [projects, setProjects] = useState(() => {
                 const saved = localStorage.getItem("knit-projects");
-                return saved ? JSON.parse(saved) : [{ id: 1, name: "作品1", count: 0, history: [], rules: [], memo: "" }];
+                return saved ? JSON.parse(saved) : [{ id: Date.now(), name: "作品1", count: 0, history: [], rules: [], memo: "" }];
             });
-            const [selectedId, setSelectedId] = useState(() => Number(localStorage.getItem("selected-project")) || 1);
+            const [selectedId, setSelectedId] = useState(() => Number(localStorage.getItem("selected-project")) || (projects[0]?.id));
             const [activeAlert, setActiveAlert] = useState(null);
             const [warning, setWarning] = useState("");
             const [settingsOpen, setSettingsOpen] = useState(false);
@@ -42,7 +42,8 @@
             const lastClickTime = useRef(0);
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
 
-            const [ruleStart, setRuleStart] = useState(currentProject.count);
+            // ルール入力用ステート
+            const [ruleStart, setRuleStart] = useState(0);
             const [ruleEvery, setRuleEvery] = useState(0);
             const [ruleTimes, setRuleTimes] = useState(0);
             const [ruleAction, setRuleAction] = useState("増し目");
@@ -53,13 +54,14 @@
                 localStorage.setItem("dark-mode", darkMode);
             }, [projects, selectedId, darkMode]);
 
+            // モーダルが開く時に現在のカウントを初期値にする
             useEffect(() => {
                 if (settingsOpen) {
                     setRuleStart(currentProject.count);
                     setRuleEvery(0);
                     setRuleTimes(0);
                 }
-            }, [settingsOpen, currentProject.count]);
+            }, [settingsOpen]);
 
             const allMilestones = useMemo(() => {
                 let points = [];
@@ -72,7 +74,6 @@
                 return points.sort((a, b) => a.step - b.step);
             }, [currentProject.rules]);
 
-            // 入力中のルールのプレビュー計算
             const rulePreview = useMemo(() => {
                 if (ruleEvery <= 0) return "";
                 let previewSteps = [];
@@ -83,19 +84,26 @@
                 return previewSteps.join(", ") + (ruleTimes === 0 || ruleTimes > 5 ? "･･･" : "");
             }, [ruleStart, ruleEvery, ruleTimes]);
 
-            useEffect(() => {
-                const activeRules = (currentProject.rules || []).filter(r => {
-                    if (r.times === 0) return true;
-                    const lastStep = r.start + ((r.times - 1) * r.every);
-                    return currentProject.count < lastStep;
-                });
-                if (activeRules.length !== (currentProject.rules || []).length) {
-                    updateProject({ ...currentProject, rules: activeRules });
-                }
-            }, [currentProject.count]);
-
             function updateProject(updated) {
                 setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
+            }
+
+            function addProject() {
+                const name = prompt("作品名を入力してください", `作品${projects.length + 1}`);
+                if (name) {
+                    const newProj = { id: Date.now(), name, count: 0, history: [], rules: [], memo: "" };
+                    setProjects([...projects, newProj]);
+                    setSelectedId(newProj.id);
+                }
+            }
+
+            function deleteProject() {
+                if (projects.length <= 1) return alert("最後のプロジェクトは削除できません");
+                if (confirm(`「${currentProject.name}」を削除しますか？`)) {
+                    const nextProjects = projects.filter(p => p.id !== selectedId);
+                    setProjects(nextProjects);
+                    setSelectedId(nextProjects[0].id);
+                }
             }
 
             function addCount(amount) {
@@ -162,17 +170,20 @@
 
             return (
                 <div style={styles.container}>
-                    {/* ヘッダー */}
-                    <div style={{display:"flex", justifyContent:"space-between", marginBottom:20}}>
-                        <div style={{display:"flex", gap:8, overflowX:"auto"}}>
+                    {/* プロジェクト管理ヘッダー */}
+                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, gap: 10}}>
+                        <div style={{display:"flex", gap:8, overflowX:"auto", flex: 1, paddingBottom: 5}}>
                             {projects.map(p => (
-                                <button key={p.id} onClick={() => setSelectedId(p.id)} style={{ border:"none", borderRadius:12, padding:"10px 18px", fontWeight:"bold", background: p.id === selectedId ? theme.accent : theme.gray, color: p.id === selectedId ? "#FFF" : theme.text }}>{p.name}</button>
+                                <button key={p.id} onClick={() => setSelectedId(p.id)} style={{ border:"none", borderRadius:12, padding:"10px 18px", fontWeight:"bold", whiteSpace:"nowrap", background: p.id === selectedId ? theme.accent : theme.gray, color: p.id === selectedId ? "#FFF" : theme.text }}>{p.name}</button>
                             ))}
                         </div>
-                        <button style={{background:"none", border:"none", fontSize:"28px"}} onClick={() => setSettingsOpen(true)}>⚙️</button>
+                        <div style={{display:"flex", gap: 10}}>
+                            <button onClick={addProject} style={{background:theme.accent + "22", border:"none", borderRadius:12, width:42, height:42, color:theme.accent, fontSize:24, fontWeight:"bold"}}>+</button>
+                            <button style={{background:"none", border:"none", fontSize:"28px", padding: 0}} onClick={() => setSettingsOpen(true)}>⚙️</button>
+                        </div>
                     </div>
 
-                    {/* メインカウンターカード */}
+                    {/* メインカウンター */}
                     <div style={styles.mainCard}>
                         <div style={{minHeight: 40}}>
                             {nextGoal && (
@@ -181,18 +192,15 @@
                                 </button>
                             )}
                         </div>
-
                         <div style={styles.bigNumber}>{currentProject.count}</div>
-
                         <div style={{color: theme.danger, fontWeight: "bold", fontSize: 14, height: 20, marginBottom: 15}}>{warning}</div>
-
                         <div style={styles.btnContainer}>
                             <button className="btn-active" onClick={() => addCount(-1)} style={styles.minusBtn}>−</button>
                             <button className="btn-active" onClick={() => addCount(1)} style={styles.plusBtn}>＋</button>
                         </div>
                     </div>
 
-                    <span style={styles.sectionLabel}>進行中のルール</span>
+                    <span style={styles.sectionLabel}>この作品のルール</span>
                     {currentProject.rules?.length === 0 ? <p style={{opacity:0.3, fontSize:14, textAlign:"center", padding: "10px"}}>ルールなし</p> : 
                         currentProject.rules?.map((r, i) => (
                             <div key={i} style={{ padding: "14px 18px", background: theme.ruleBg, borderRadius: "16px", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", color: theme.accent }}>
@@ -202,18 +210,20 @@
                         ))
                     }
 
-                    <span style={styles.sectionLabel}>作品メモ</span>
-                    <textarea style={{width:"100%", height:80, borderRadius:20, border:"none", padding:15, background:theme.card, color:theme.text, fontSize:16}} placeholder="メモを書く..." value={currentProject.memo} onChange={e => updateProject({...currentProject, memo: e.target.value})} />
+                    <span style={styles.sectionLabel}>メモ</span>
+                    <textarea style={{width:"100%", height:80, borderRadius:20, border:"none", padding:15, background:theme.card, color:theme.text, fontSize:16}} placeholder="メモ..." value={currentProject.memo || ""} onChange={e => updateProject({...currentProject, memo: e.target.value})} />
 
                     <span style={styles.sectionLabel}>履歴</span>
                     <div style={{background: theme.card, borderRadius: "20px", padding: "5px 15px", marginBottom: 20}}>
-                        {currentProject.history?.map((h, i) => (
-                            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: i === currentProject.history.length - 1 ? "none" : `1px solid ${darkMode ? "#2C2C2E" : "#EEE"}` }}>
-                                <span style={{opacity:0.5, fontSize:13}}>{h.time}</span>
-                                <span style={{fontWeight:"bold", color: h.action === "+1" ? theme.accent : theme.danger}}>{h.action}</span>
-                                <span style={{fontWeight:"bold"}}>{h.count}段</span>
-                            </div>
-                        ))}
+                        {currentProject.history?.length === 0 ? <p style={{opacity:0.3, fontSize:13, textAlign:"center", padding: 10}}>履歴なし</p> :
+                            currentProject.history?.map((h, i) => (
+                                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: i === currentProject.history.length - 1 ? "none" : `1px solid ${darkMode ? "#2C2C2E" : "#EEE"}` }}>
+                                    <span style={{opacity:0.5, fontSize:13}}>{h.time}</span>
+                                    <span style={{fontWeight:"bold", color: h.action === "+1" ? theme.accent : theme.danger}}>{h.action}</span>
+                                    <span style={{fontWeight:"bold"}}>{h.count}段</span>
+                                </div>
+                            ))
+                        }
                     </div>
 
                     {/* 設定モーダル */}
@@ -226,26 +236,23 @@
                                     <StepInput label="間隔" value={ruleEvery} onChange={setRuleEvery} />
                                     <StepInput label="回数(0=無)" value={ruleTimes} onChange={setRuleTimes} />
                                 </div>
-                                <span style={{ fontSize: 11, opacity: 0.6, marginBottom: 4, display: "block" }}>内容</span>
-                                <input type="text" value={ruleAction} onChange={e => setRuleAction(e.target.value)} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 16, marginBottom: 20 }} />
+                                内容<input type="text" value={ruleAction} onChange={e => setRuleAction(e.target.value)} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 16, marginTop: 5, marginBottom: 20 }} />
                                 
-                                {/* プレビュー表示エリア */}
                                 <div style={{ marginBottom: 15, textAlign: "center", background: theme.inputBg, padding: "12px", borderRadius: "14px", border: `1px dashed ${theme.accent}44` }}>
-                                    <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4 }}>対象となる段数の例</div>
-                                    <div style={{ fontSize: 16, fontWeight: "bold", color: theme.accent, letterSpacing: "0.5px" }}>
-                                        {rulePreview || "間隔を入力してください"}
-                                    </div>
+                                    <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4 }}>対象段数のプレビュー</div>
+                                    <div style={{ fontSize: 16, fontWeight: "bold", color: theme.accent }}>{rulePreview || "間隔を入力してください"}</div>
                                 </div>
 
                                 <button onClick={() => {
                                     updateProject({...currentProject, rules: [...(currentProject.rules || []), {start: ruleStart, every: ruleEvery, times: ruleTimes, action: ruleAction}]});
                                     setSettingsOpen(false);
-                                }} style={{ width: "100%", padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>保存して戻る</button>
+                                }} style={{ width: "100%", padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>ルールを保存</button>
                                 
                                 <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                                     <button onClick={() => setDarkMode(!darkMode)} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: theme.gray, color: theme.text }}>モード切替</button>
-                                    <button onClick={() => { if(confirm("リセットしますか？")){ updateProject({...currentProject, count:0, history:[]}); setSettingsOpen(false); } }} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: "#FF3B3015", color: theme.danger }}>リセット</button>
+                                    <button onClick={() => { if(confirm("段数を0にリセットしますか？")){ updateProject({...currentProject, count:0, history:[]}); setSettingsOpen(false); } }} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: "#FF3B3015", color: theme.danger }}>段数リセット</button>
                                 </div>
+                                <button onClick={deleteProject} style={{ width: "100%", padding: 12, background: "none", color: theme.danger, border: "none", marginTop: 10, fontWeight: "bold", fontSize: 14 }}>この作品を削除する</button>
                             </div>
                         </div>
                     )}
@@ -266,7 +273,6 @@
                         </div>
                     )}
 
-                    {/* 通知アラート */}
                     {activeAlert && (
                         <div style={{ position: "fixed", inset: 0, background: theme.accent, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }} onClick={() => setActiveAlert(null)}>
                             <div style={{ textAlign: "center", color: "white" }}>
