@@ -163,11 +163,18 @@
 
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginTop: 25, marginBottom: 10}}>
                         <span style={styles.sectionLabel}>進行中のルール</span>
-                        <button onClick={() => { setEditingRuleIndex(null); setRuleStart(currentProject.count); setRuleEvery(0); setRuleTimes(0); setRuleAction("増し目"); setRuleModalOpen(true); }} style={{background:"none", border:"none", color:theme.accent, fontWeight:"bold", fontSize:13, marginTop: 15}}>+ 追加</button>
+                        <button onClick={() => { 
+                            setEditingRuleIndex(null); 
+                            setRuleStart(currentProject.count); // 初期値を今の段数にする
+                            setRuleEvery(0); 
+                            setRuleTimes(0); 
+                            setRuleAction("増し目"); 
+                            setRuleModalOpen(true); 
+                        }} style={{background:"none", border:"none", color:theme.accent, fontWeight:"bold", fontSize:13, marginTop: 15}}>+ 追加</button>
                     </div>
 
                     {currentProject.rules?.length === 0 ? 
-                        <div onClick={() => setRuleModalOpen(true)} style={{padding: "20px", background: theme.card, borderRadius: "16px", textAlign: "center", opacity: 0.5, fontSize: 14}}>ルールを設定する</div> : 
+                        <div onClick={() => { setEditingRuleIndex(null); setRuleStart(currentProject.count); setRuleEvery(0); setRuleTimes(0); setRuleAction("増し目"); setRuleModalOpen(true); }} style={{padding: "20px", background: theme.card, borderRadius: "16px", textAlign: "center", opacity: 0.5, fontSize: 14}}>ルールを設定する</div> : 
                         currentProject.rules?.map((r, i) => (
                             <div key={i} onClick={() => { const rule = currentProject.rules[i]; setEditingRuleIndex(i); setRuleStart(rule.start); setRuleEvery(rule.every); setRuleTimes(rule.times); setRuleAction(rule.action); setRuleModalOpen(true); }} className="rule-card" style={{ padding: "16px 18px", background: theme.ruleBg, borderRadius: "16px", marginBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", color: theme.accent }}>
                                 <div style={{display:"flex", flexDirection:"column"}}>
