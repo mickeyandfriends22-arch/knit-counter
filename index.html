@@ -124,7 +124,7 @@
                 
                 // 10秒以内：カウントは進めるが、🤔を表示
                 if (diff < 10000 && lastClickTime.current !== 0) {
-                    setWarning({ message: "連打中...？🤔", type: "warning" });
+                    setWarning({ message: "押し間違い...？🤔", type: "warning" });
                     setTimeout(() => setWarning({ message: null, type: null }), 1500);
                 }
 
