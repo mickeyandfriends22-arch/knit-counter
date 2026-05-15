@@ -16,7 +16,7 @@
         @media (prefers-color-scheme: dark) { body { background-color: #000; } }
         ::-webkit-scrollbar { display: none; }
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .btn-active:active { transform: scale(0.92); opacity: 0.8; }
+        .btn-active:active { transform: scale(0.96); opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -128,10 +128,12 @@
 
             const styles = {
                 container: { minHeight: "100vh", padding: "calc(env(safe-area-inset-top) + 15px) 20px 60px", background: theme.bg, color: theme.text, transition: "0.3s" },
-                mainCard: { borderRadius: "40px", padding: "40px 20px", textAlign: "center", background: theme.card, boxShadow: "0 10px 30px rgba(0,0,0,0.1)", position: "relative" },
-                bigNumber: { fontSize: "120px", fontWeight: "900", lineHeight: 1, margin: "20px 0" },
+                mainCard: { borderRadius: "40px", padding: "30px 20px 25px", textAlign: "center", background: theme.card, boxShadow: "0 10px 30px rgba(0,0,0,0.1)" },
+                bigNumber: { fontSize: "120px", fontWeight: "900", lineHeight: 1, margin: "10px 0" },
                 sectionLabel: { fontSize: "13px", fontWeight: "bold", opacity: 0.5, margin: "25px 0 10px", display: "block" },
-                countBtn: { width: "80px", height: "80px", borderRadius: "25px", border: "none", fontSize: "32px", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center" }
+                btnContainer: { display: "flex", gap: "15px", width: "100%", marginTop: "10px" },
+                minusBtn: { width: "80px", height: "85px", borderRadius: "25px", border: "none", fontSize: "32px", fontWeight: "bold", background: theme.gray, color: theme.text, display: "flex", alignItems: "center", justifyContent: "center" },
+                plusBtn: { flex: 1, height: "85px", borderRadius: "25px", border: "none", fontSize: "40px", fontWeight: "bold", background: theme.accent, color: "white", display: "flex", alignItems: "center", justifyContent: "center" }
             };
 
             const StepInput = ({ label, value, onChange }) => (
@@ -149,7 +151,7 @@
 
             return (
                 <div style={styles.container}>
-                    {/* プロジェクト切り替え */}
+                    {/* ヘッダー */}
                     <div style={{display:"flex", justifyContent:"space-between", marginBottom:20}}>
                         <div style={{display:"flex", gap:8, overflowX:"auto"}}>
                             {projects.map(p => (
@@ -159,9 +161,8 @@
                         <button style={{background:"none", border:"none", fontSize:"28px"}} onClick={() => setSettingsOpen(true)}>⚙️</button>
                     </div>
 
-                    {/* メインカウンター */}
+                    {/* メインカウンターカード */}
                     <div style={styles.mainCard}>
-                        {/* スケジュール確認ボタン */}
                         <div style={{minHeight: 40}}>
                             {nextGoal && (
                                 <button onClick={() => setScheduleOpen(true)} style={{background:theme.ruleBg, border:"none", borderRadius:15, padding:"6px 16px", color:theme.accent, fontWeight:"bold", fontSize:14}}>
@@ -172,17 +173,17 @@
 
                         <div style={styles.bigNumber}>{currentProject.count}</div>
 
-                        <div style={{color: theme.danger, fontWeight: "bold", fontSize: 14, height: 20, marginBottom: 20}}>{warning}</div>
+                        <div style={{color: theme.danger, fontWeight: "bold", fontSize: 14, height: 20, marginBottom: 15}}>{warning}</div>
 
-                        {/* 操作ボタンエリア */}
-                        <div style={{display: "flex", justifyContent: "center", gap: "30px", alignItems: "center"}}>
-                            <button className="btn-active" onClick={() => addCount(-1)} style={{...styles.countBtn, background: theme.gray, color: theme.text}}>−</button>
-                            <button className="btn-active" onClick={() => addCount(1)} style={{...styles.countBtn, background: theme.accent, color: "white"}}>＋</button>
+                        {/* ボタンエリア: - は固定幅、+ は残り全部 */}
+                        <div style={styles.btnContainer}>
+                            <button className="btn-active" onClick={() => addCount(-1)} style={styles.minusBtn}>−</button>
+                            <button className="btn-active" onClick={() => addCount(1)} style={styles.plusBtn}>＋</button>
                         </div>
                     </div>
 
                     <span style={styles.sectionLabel}>進行中のルール</span>
-                    {currentProject.rules?.length === 0 ? <p style={{opacity:0.3, fontSize:14, textAlign:"center"}}>なし</p> : 
+                    {currentProject.rules?.length === 0 ? <p style={{opacity:0.3, fontSize:14, textAlign:"center", padding: "10px"}}>ルールなし</p> : 
                         currentProject.rules?.map((r, i) => (
                             <div key={i} style={{ padding: "14px 18px", background: theme.ruleBg, borderRadius: "16px", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", color: theme.accent }}>
                                 <span style={{fontSize:15}}><b>{r.start}段</b>〜 <b>{r.every}段</b>毎 ({r.times === 0 ? "ずっと" : r.times + "回"})</span>
@@ -192,7 +193,7 @@
                     }
 
                     <span style={styles.sectionLabel}>作品メモ</span>
-                    <textarea style={{width:"100%", height:80, borderRadius:20, border:"none", padding:15, background:theme.card, color:theme.text, fontSize:16}} placeholder="メモ..." value={currentProject.memo} onChange={e => updateProject({...currentProject, memo: e.target.value})} />
+                    <textarea style={{width:"100%", height:80, borderRadius:20, border:"none", padding:15, background:theme.card, color:theme.text, fontSize:16}} placeholder="メモを書く..." value={currentProject.memo} onChange={e => updateProject({...currentProject, memo: e.target.value})} />
 
                     <span style={styles.sectionLabel}>履歴</span>
                     <div style={{background: theme.card, borderRadius: "20px", padding: "5px 15px", marginBottom: 20}}>
@@ -207,7 +208,7 @@
 
                     {/* 設定モーダル */}
                     {settingsOpen && (
-                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000 }} onClick={() => setSettingsOpen(false)}>
+                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setSettingsOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card }} onClick={e => e.stopPropagation()}>
                                 <h3 style={{ marginTop: 0 }}>ルールを追加</h3>
                                 <div style={{ display: "flex", gap: 10, marginBottom: 15 }}>
@@ -231,7 +232,7 @@
 
                     {/* スケジュールモーダル */}
                     {scheduleOpen && (
-                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000 }} onClick={() => setScheduleOpen(false)}>
+                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setScheduleOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "70vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
                                 <h3 style={{ marginTop: 0, textAlign: "center" }}>今後の予定</h3>
                                 {allMilestones.filter(m => m.step > currentProject.count).slice(0, 20).map((m, i) => (
