@@ -15,16 +15,17 @@
         ::-webkit-scrollbar { display: none; }
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         .btn-active:active { transform: scale(0.96); opacity: 0.8; }
-        .rule-card:active { opacity: 0.6; background: #D1E9FF; }
+        .rule-card:active { opacity: 0.6; }
         .history-item { display: flex; justify-content: space-between; padding: 12px 0; align-items: center; }
         .bg-illust { position: fixed; bottom: -20px; right: -20px; font-size: 150px; opacity: 0.05; z-index: -1; pointer-events: none; }
         
-        /* 編み込みモード：濃い青 */
-        .pattern-status { background: #007AFF; color: #FFFFFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid #007AFF; }
+        /* 編み込み：現在の状態（控えめな青） */
+        .pattern-status { background: #007AFF15; color: #007AFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid #007AFF33; }
+        @media (prefers-color-scheme: dark) { .pattern-status { background: #007AFF33; } }
         
-        /* 次の予定：薄い青 */
-        .next-status { background: #007AFF15; color: #007AFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid #007AFF44; cursor: pointer; }
-        @media (prefers-color-scheme: dark) { .next-status { background: #007AFF33; } }
+        /* 次の予定：アクションボタン（＋ボタンと同じ濃い青） */
+        .next-status { background: #007AFF; color: #FFFFFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(0,122,255,0.3); }
+        .next-status:active { transform: scale(0.96); opacity: 0.9; }
     </style></head><body>
     <div id="root"></div>
     <script type="text/babel">
@@ -96,7 +97,8 @@
                 card: darkMode ? "#1C1C1E" : "#FFF",
                 text: darkMode ? "#FFF" : "#000",
                 accent: "#007AFF",
-                ruleBg: darkMode ? "rgba(0, 122, 255, 0.15)" : "#EBF5FF",
+                ruleBg: darkMode ? "rgba(0, 122, 255, 0.1)" : "#F2F2F7",
+                patternBg: darkMode ? "rgba(0, 122, 255, 0.25)" : "#007AFF15",
                 inputBg: darkMode ? "#2C2C2E" : "#F2F2F7",
                 danger: "#FF3B30",
                 gray: darkMode ? "#3A3A3C" : "#E5E5EA"
@@ -215,12 +217,12 @@
                     {(currentProject.rules || []).map((r, i) => (
                         <div key={i} onClick={() => { 
                             setEditingRuleIndex(i); setRuleStart(r.start); setRuleEvery(r.every); setRuleTimes(r.times); setRuleAction(r.action); setIsPatternMode(!!r.isPattern); setRuleModalOpen(true); 
-                        }} className="rule-card" style={{ padding: "16px 18px", background: r.isPattern ? theme.accent+"15" : theme.ruleBg, borderRadius: "16px", marginBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", color: r.isPattern ? theme.accent : theme.text }}>
+                        }} className="rule-card" style={{ padding: "16px 18px", background: r.isPattern ? theme.patternBg : theme.ruleBg, borderRadius: "16px", marginBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", color: r.isPattern ? theme.accent : theme.text }}>
                             <div style={{display:"flex", flexDirection:"column"}}>
                                 <span style={{fontSize:15, fontWeight:"bold"}}>{r.action} {r.isPattern && " (編み込み)"}</span>
-                                <span style={{fontSize:12, opacity:0.8}}>{r.start}段〜 {r.every}段毎 ({r.times === 0 ? "ずっと" : r.times + "回"})</span>
+                                <span style={{fontSize:12, opacity:0.6}}>{r.start}段〜 {r.every}段毎 ({r.times === 0 ? "ずっと" : r.times + "回"})</span>
                             </div>
-                            <span style={{fontSize:18, opacity:0.3}}>›</span>
+                            <span style={{fontSize:18, opacity:0.3, color: r.isPattern ? theme.accent : theme.text}}>›</span>
                         </div>
                     ))}
 
@@ -235,11 +237,6 @@
                                 <span style={{fontWeight:"900", fontSize: 18, color: h.isNegative ? theme.danger : theme.accent}}>{h.count}段</span>
                             </div>
                         ))}
-                        {currentProject.history?.length > 5 && (
-                            <button onClick={() => setHistoryExpanded(!historyExpanded)} style={{ width: "100%", padding: "12px", border: "none", background: "none", color: theme.accent, fontSize: 13, fontWeight: "bold" }}>
-                                {historyExpanded ? "▲ 閉じる" : "▼ もっと見る"}
-                            </button>
-                        )}
                     </div>
 
                     {ruleModalOpen && (
