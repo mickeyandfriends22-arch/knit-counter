@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://fav.farm/🧶">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body { margin: 0; background-color: #F2F2F7; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; overflow-x: hidden; }
@@ -49,7 +49,7 @@
             });
             
             const lastClickTime = useRef(0);
-            const lastDelta = useRef(null); // 直前の操作が +1 か -1 かを記録
+            const lastDelta = useRef(null); 
             const lastAlertedCount = useRef(null);
 
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
@@ -115,25 +115,26 @@
             const handleCountChange = (delta) => {
                 const now = Date.now();
                 const diff = now - lastClickTime.current;
+                const isSameDirection = delta === lastDelta.current;
                 
-                // 同じ方向のボタンを2秒以内に連打した時だけガード
-                if (delta === lastDelta.current && diff < 2000 && lastClickTime.current !== 0) {
+                // 同じボタンを2秒以内に連打した場合のみガード
+                if (isSameDirection && diff < 2000 && lastClickTime.current !== 0) {
                     setWarning({ message: "押し間違い！", type: "danger" });
                     setTimeout(() => setWarning({ message: null, type: null }), 1200);
                     return;
                 } 
                 
-                // 同じ方向のボタンを10秒以内に押した時は 🤔 表示
-                if (delta === lastDelta.current && diff < 10000 && lastClickTime.current !== 0) {
+                // 同じボタンを10秒以内に押した時は 🤔 表示
+                if (isSameDirection && diff < 10000 && lastClickTime.current !== 0) {
                     setWarning({ message: "🤔 連打中？", type: "warning" });
                     setTimeout(() => setWarning({ message: null, type: null }), 1500);
                 } else {
-                    // 逆方向の操作、または時間が経過している場合は警告を消す
+                    // 逆方向の操作、または時間が経過している場合は警告をクリア
                     setWarning({ message: null, type: null });
                 }
 
                 lastClickTime.current = now;
-                lastDelta.current = delta; // 今回の操作方向を保存
+                lastDelta.current = delta; 
                 
                 const newCount = currentProject.count + delta;
                 if (newCount < 0) return;
