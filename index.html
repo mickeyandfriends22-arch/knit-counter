@@ -21,7 +21,6 @@
         .guide-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; color: white; text-align: center; }
         .history-item { display: flex; justify-content: space-between; padding: 12px 0; align-items: center; }
         .bg-illust { position: fixed; bottom: -20px; right: -20px; font-size: 150px; opacity: 0.05; z-index: -1; pointer-events: none; }
-        .warning-overlay { position: fixed; inset: 0; background: rgba(255, 59, 48, 0.9); display: flex; align-items: center; justify-content: center; z-index: 2500; color: white; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -114,7 +113,6 @@
                 const now = Date.now();
                 const diff = now - lastClickTime.current;
                 
-                // 誤操作チェック
                 if (diff < 2000) {
                     setWarningMessage("押し間違い！");
                     setTimeout(() => setWarningMessage(null), 1500);
@@ -183,7 +181,9 @@
 
                     <div style={styles.mainCard}>
                         <div style={{minHeight: 40}}>
-                            {nextGoal && (
+                            {warningMessage ? (
+                                <div style={{ color: theme.danger, fontWeight: "bold", fontSize: 18, animation: "bounce 0.3s ease infinite alternate" }}>⚠️ {warningMessage}</div>
+                            ) : nextGoal && (
                                 <button onClick={() => setScheduleOpen(true)} style={{background:theme.ruleBg, border:"none", borderRadius:15, padding:"6px 16px", color:theme.accent, fontWeight:"bold", fontSize:14}}>
                                     次は {nextGoal.step}段目 ({nextGoal.action}) ▾
                                 </button>
@@ -305,15 +305,6 @@
                             <div style={{ textAlign: "center", color: "white" }}>
                                 <div style={{ fontSize: 80, fontWeight: "900" }}>{activeAlert}</div>
                                 <div style={{ marginTop: 40, padding: "15px 50px", border: "3px solid white", borderRadius: 20, fontWeight: "bold" }}>OK</div>
-                            </div>
-                        </div>
-                    )}
-
-                    {warningMessage && (
-                        <div className="warning-overlay" onClick={() => setWarningMessage(null)}>
-                            <div>
-                                <div style={{fontSize: 60, marginBottom: 20}}>⚠️</div>
-                                <div style={{fontSize: 40}}>{warningMessage}</div>
                             </div>
                         </div>
                     )}
