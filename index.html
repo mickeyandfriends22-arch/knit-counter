@@ -33,7 +33,6 @@
             });
             const [selectedId, setSelectedId] = useState(() => Number(localStorage.getItem("selected-project")) || (projects[0]?.id));
             const [activeAlert, setActiveAlert] = useState(null);
-            const [warning, setWarning] = useState("");
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [scheduleOpen, setScheduleOpen] = useState(false);
             const [showGuide, setShowGuide] = useState(false);
@@ -43,7 +42,6 @@
                 return saved === null ? window.matchMedia('(prefers-color-scheme: dark)').matches : saved === "true";
             });
             
-            const lastClickTime = useRef(0);
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
 
             const [ruleStart, setRuleStart] = useState(0);
@@ -146,7 +144,6 @@
 
             return (
                 <div style={styles.container}>
-                    {/* ホーム画面追加ガイド */}
                     {showGuide && (
                         <div className="guide-overlay" onClick={() => setShowGuide(false)}>
                             <div style={{maxWidth: 300}}>
@@ -162,7 +159,6 @@
                         </div>
                     )}
 
-                    {/* プロジェクト管理ヘッダー */}
                     <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, gap: 10}}>
                         <div style={{display:"flex", gap:8, overflowX:"auto", flex: 1, paddingBottom: 5}}>
                             {projects.map(p => (
@@ -177,7 +173,6 @@
                         </div>
                     </div>
 
-                    {/* メインカウンター */}
                     <div style={styles.mainCard}>
                         <div style={{minHeight: 40}}>
                             {nextGoal && (
@@ -187,7 +182,7 @@
                             )}
                         </div>
                         <div style={styles.bigNumber}>{currentProject.count}</div>
-                        <div style={{color: theme.danger, fontWeight: "bold", fontSize: 14, height: 20, marginBottom: 15}}>{warning}</div>
+                        <div style={{height: 20, marginBottom: 15}}></div>
                         <div style={styles.btnContainer}>
                             <button className="btn-active" onClick={() => (("vibrate" in navigator) && navigator.vibrate(15), updateProject({...currentProject, count: Math.max(0, currentProject.count-1)}))} style={styles.minusBtn}>−</button>
                             <button className="btn-active" onClick={() => {
@@ -198,7 +193,7 @@
                                 updateProject({
                                     ...currentProject, 
                                     count: newCount,
-                                    history: [{ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), action: "+1", count: newCount }, ...(currentProject.history || [])].slice(0, 10)
+                                    history: [{ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), action: "+1", count: newCount }, ...(currentProject.history || [])].slice(0, 15)
                                 });
                             }} style={styles.plusBtn}>＋</button>
                         </div>
@@ -225,17 +220,18 @@
                     <span style={styles.sectionLabel}>メモ</span>
                     <textarea style={{width:"100%", height:80, borderRadius:20, border:"none", padding:15, background:theme.card, color:theme.text, fontSize:16}} placeholder="サイズやメモ..." value={currentProject.memo || ""} onChange={e => updateProject({...currentProject, memo: e.target.value})} />
 
-                    <span style={styles.sectionLabel}>履歴</span>
-                    <div style={{background: theme.card, borderRadius: "20px", padding: "5px 15px", marginBottom: 20}}>
-                        {currentProject.history?.slice(0,5).map((h, i) => (
-                            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: i === currentProject.history.slice(0,5).length - 1 ? "none" : `1px solid ${darkMode ? "#2C2C2E" : "#EEE"}` }}>
-                                <span style={{opacity:0.5, fontSize:13}}>{h.time}</span>
-                                <span style={{fontWeight:"bold"}}>{h.count}段</span>
-                            </div>
-                        ))}
+                    <span style={styles.sectionLabel}>履歴 (最新15件)</span>
+                    <div style={{background: theme.card, borderRadius: "20px", padding: "5px 15px", marginBottom: 20, maxHeight: "300px", overflowY: "auto"}}>
+                        {currentProject.history?.length === 0 ? <p style={{opacity:0.3, fontSize:13, textAlign:"center", padding: 10}}>履歴なし</p> :
+                            currentProject.history?.map((h, i) => (
+                                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: i === currentProject.history.length - 1 ? "none" : `1px solid ${darkMode ? "#2C2C2E" : "#EEE"}` }}>
+                                    <span style={{opacity:0.5, fontSize:13}}>{h.time}</span>
+                                    <span style={{fontWeight:"bold", color: theme.accent}}>{h.count}段</span>
+                                </div>
+                            ))
+                        }
                     </div>
 
-                    {/* 設定モーダル */}
                     {settingsOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setSettingsOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card }} onClick={e => e.stopPropagation()}>
@@ -271,7 +267,6 @@
                                 
                                 <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                                     <button onClick={() => setDarkMode(!darkMode)} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: theme.gray, color: theme.text, fontSize:13 }}>ダークモード</button>
-                                    {/* ホーム追加ガイドボタン */}
                                     <button onClick={() => { setShowGuide(true); setSettingsOpen(false); }} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: theme.gray, color: theme.text, fontSize:13 }}>ホームに追加</button>
                                 </div>
                                 <button onClick={() => { if(confirm("作品を削除しますか？")){ const next = projects.filter(p=>p.id!==selectedId); setProjects(next.length?next:[{id:Date.now(), name:"作品1", count:0, rules:[], history:[]}]); setSelectedId(next[0]?.id || Date.now()); setSettingsOpen(false); } }} style={{ width: "100%", padding: 12, border: "none", background: "none", color: theme.danger, marginTop: 10, fontSize:13 }}>この作品を削除する</button>
@@ -279,7 +274,6 @@
                         </div>
                     )}
 
-                    {/* 今後の予定 */}
                     {scheduleOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setScheduleOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "70vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
