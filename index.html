@@ -26,7 +26,7 @@
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
         function App() {
             const [projects, setProjects] = useState(() => {
@@ -46,6 +46,9 @@
                 return saved === null ? window.matchMedia('(prefers-color-scheme: dark)').matches : saved === "true";
             });
             
+            // 通知の重複防止用
+            const lastAlertedCount = useRef(null);
+
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
 
             const [ruleStart, setRuleStart] = useState(0);
@@ -157,7 +160,19 @@
                         <div style={styles.bigNumber}>{currentProject.count}</div>
                         <div style={styles.btnContainer}>
                             <button className="btn-active" onClick={() => { if (currentProject.count > 0) { if ("vibrate" in navigator) navigator.vibrate(15); addHistory(currentProject.count - 1, "-1"); } }} style={styles.minusBtn}>−</button>
-                            <button className="btn-active" onClick={() => { const newCount = currentProject.count + 1; if ("vibrate" in navigator) navigator.vibrate(15); const hit = allMilestones.find(m => m.step === newCount); if (hit) setActiveAlert(hit.action); addHistory(newCount, "+1"); }} style={styles.plusBtn}>＋</button>
+                            <button className="btn-active" onClick={() => { 
+                                const newCount = currentProject.count + 1; 
+                                if ("vibrate" in navigator) navigator.vibrate(15); 
+                                
+                                const hit = allMilestones.find(m => m.step === newCount);
+                                // 前回の通知と異なる段数の場合のみ通知を出す
+                                if (hit && lastAlertedCount.current !== newCount) {
+                                    setActiveAlert(hit.action);
+                                    lastAlertedCount.current = newCount;
+                                }
+                                
+                                addHistory(newCount, "+1"); 
+                            }} style={styles.plusBtn}>＋</button>
                         </div>
                     </div>
 
@@ -165,7 +180,7 @@
                         <span style={styles.sectionLabel}>進行中のルール</span>
                         <button onClick={() => { 
                             setEditingRuleIndex(null); 
-                            setRuleStart(currentProject.count); // 初期値を今の段数にする
+                            setRuleStart(currentProject.count); 
                             setRuleEvery(0); 
                             setRuleTimes(0); 
                             setRuleAction("増し目"); 
