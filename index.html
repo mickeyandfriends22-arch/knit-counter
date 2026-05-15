@@ -115,17 +115,17 @@
                 const now = Date.now();
                 const diff = now - lastClickTime.current;
                 
-                // 2秒以内：ガードして警告（赤）
+                // 2秒以内：ガードあり
                 if (diff < 2000 && lastClickTime.current !== 0) {
                     setWarning({ message: "押し間違い！", type: "danger" });
                     setTimeout(() => setWarning({ message: null, type: null }), 1200);
                     return;
                 } 
                 
-                // 10秒以内：カウントは進めるが通知（オレンジ）
+                // 10秒以内：カウントは進めるが、🤔を表示
                 if (diff < 10000 && lastClickTime.current !== 0) {
                     setWarning({ message: "連打中...？🤔", type: "warning" });
-                    setTimeout(() => setWarning({ message: null, type: null }), 1000);
+                    setTimeout(() => setWarning({ message: null, type: null }), 1500);
                 }
 
                 lastClickTime.current = now;
@@ -188,7 +188,7 @@
                         <div style={{minHeight: 40}}>
                             {warning.message ? (
                                 <div style={{ color: theme[warning.type], fontWeight: "bold", fontSize: 18, animation: warning.type === "danger" ? "bounce 0.3s ease infinite alternate" : "none" }}>
-                                    {warning.type === "danger" ? "⚠️" : "🕒"} {warning.message}
+                                    {warning.type === "danger" ? "⚠️" : ""} {warning.message}
                                 </div>
                             ) : nextGoal && (
                                 <button onClick={() => setScheduleOpen(true)} style={{background:theme.ruleBg, border:"none", borderRadius:15, padding:"6px 16px", color:theme.accent, fontWeight:"bold", fontSize:14}}>
