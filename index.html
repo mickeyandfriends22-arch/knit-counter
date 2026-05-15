@@ -37,7 +37,6 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         function App() {
-            // データ消失防止：過去のキーもチェック
             const STORAGE_KEYS = ["knit-projects", "knit-projects-v4-pro"];
             
             const [projects, setProjects] = useState(() => {
@@ -72,7 +71,6 @@
             const [ruleAction, setRuleAction] = useState("模様編み");
             const [isPatternMode, setIsPatternMode] = useState(false);
 
-            // 二重保存で安定性を確保
             useEffect(() => {
                 const data = JSON.stringify(projects);
                 STORAGE_KEYS.forEach(key => localStorage.setItem(key, data));
@@ -112,14 +110,7 @@
             }, [ruleStart, ruleEvery, ruleTimes]);
 
             const fireConfetti = () => {
-                const duration = 3 * 1000;
-                const end = Date.now() + duration;
-                const frame = () => {
-                    confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#007AFF', '#34C759', '#FFD60A'] });
-                    confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#007AFF', '#34C759', '#FFD60A'] });
-                    if (Date.now() < end) requestAnimationFrame(frame);
-                };
-                frame();
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#007AFF', '#34C759', '#FFD60A'] });
             };
 
             function updateProject(updated) {
