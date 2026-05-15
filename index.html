@@ -21,10 +21,15 @@
         .history-item { display: flex; justify-content: space-between; padding: 12px 0; align-items: center; border-bottom: 1px solid rgba(120,120,128,0.1); }
         .history-item:last-child { border-bottom: none; }
         .bg-illust { position: fixed; bottom: -20px; right: -20px; font-size: 150px; opacity: 0.05; z-index: -1; pointer-events: none; }
-        .pattern-status { background: #007AFF15; color: #007AFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid #007AFF33; }
-        @media (prefers-color-scheme: dark) { .pattern-status { background: #007AFF33; } }
-        .next-status { background: #007AFF; color: #FFFFFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(0,122,255,0.3); }
-        .next-status:active { transform: scale(0.96); opacity: 0.9; }
+        
+        /* ステータス表示のスタイル */
+        .status-container { min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; margin-bottom: 5px; }
+        .alert-text { color: #FF3B30; font-weight: 800; font-size: 18px; animation: pulse 2s infinite; }
+        .pattern-text { color: #007AFF; font-weight: 800; font-size: 15px; }
+        .next-hint { font-size: 13px; opacity: 0.5; font-weight: bold; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
         .progress-container { width: 100%; background: #E5E5EA; height: 24px; border-radius: 12px; position: relative; overflow: hidden; margin: 15px 0; }
         @media (prefers-color-scheme: dark) { .progress-container { background: #2C2C2E; } }
         .progress-bar { height: 100%; background: #007AFF; transition: width 0.3s ease; border-radius: 12px; }
@@ -80,6 +85,14 @@
                 return points.sort((a, b) => a.step - b.step);
             }, [currentProject.rules]);
 
+            const nextMilestone = useMemo(() => {
+                return allMilestones.find(m => m.step > currentProject.count && !m.isPattern);
+            }, [allMilestones, currentProject.count]);
+
+            const currentPattern = useMemo(() => {
+                return (currentProject.rules || []).find(r => r.isPattern && currentProject.count >= r.start && (r.times === 0 || currentProject.count < (r.start + r.every * r.times)));
+            }, [currentProject.rules, currentProject.count]);
+
             const progressInfo = useMemo(() => {
                 if (!currentProject.targetCount || currentProject.targetCount === 0) return null;
                 const percent = Math.floor((currentProject.count / currentProject.targetCount) * 100);
@@ -128,7 +141,6 @@
                 } else { lastAlertedCount.current = null; }
 
                 const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                // 履歴を20件に拡張
                 const newHistory = [{ time: timeStr, action: delta > 0 ? "+1" : "-1", count: newCount, isNegative: delta < 0 }, ...(currentProject.history || [])].slice(0, 20);
                 updateProject({ ...currentProject, count: newCount, history: newHistory });
             };
@@ -169,18 +181,23 @@
                     </div>
 
                     <div style={{ borderRadius: "40px", padding: "25px 20px", textAlign: "center", background: theme.card, boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
-                        <div style={{minHeight: 40, display:"flex", justifyContent:"center", alignItems:"center"}}>
-                            {warning.message ? <div style={{ color: theme.danger, fontWeight: "bold" }}>⚠️ {warning.message}</div> : 
-                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                                    {(currentProject.rules || []).find(r => r.isPattern && currentProject.count >= r.start && r.every > 0) && (
-                                        <div className="pattern-status">模様進行中</div>
+                        
+                        <div className="status-container">
+                            {warning.message ? (
+                                <div style={{ color: theme.danger, fontWeight: "bold" }}>⚠️ {warning.message}</div>
+                            ) : (
+                                <>
+                                    {currentPattern && <div className="pattern-text">模様進行中：{currentPattern.action}</div>}
+                                    {nextMilestone && (
+                                        <div onClick={() => setScheduleOpen(true)} style={{cursor:"pointer"}}>
+                                            <span className="next-hint">{nextMilestone.step}段目：</span>
+                                            <span className="alert-text">{nextMilestone.action}</span>
+                                        </div>
                                     )}
-                                    {allMilestones.find(m => m.step > currentProject.count && !m.isPattern) && (
-                                        <button onClick={() => setScheduleOpen(true)} className="next-status">予定を確認 ▾</button>
-                                    )}
-                                </div>
-                            }
+                                </>
+                            )}
                         </div>
+
                         <div style={{ fontSize: "120px", fontWeight: "900", lineHeight: 1, margin: "10px 0" }}>{currentProject.count}</div>
                         
                         {progressInfo && (
@@ -211,7 +228,7 @@
                         </div>
                     ))}
 
-                    <span style={{fontSize:13, fontWeight:"bold", opacity:0.5, marginTop:25, display:"block", marginBottom:10}}>履歴 (最大20件)</span>
+                    <span style={{fontSize:13, fontWeight:"bold", opacity:0.5, marginTop:25, display:"block", marginBottom:10}}>履歴 (直近20件)</span>
                     <div style={{background: theme.card, borderRadius: "20px", padding: "5px 18px", marginBottom: 20}}>
                         {(currentProject.history || []).slice(0, historyExpanded ? 20 : 5).map((h, i, arr) => (
                             <div key={i} className="history-item">
