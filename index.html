@@ -110,7 +110,23 @@
             }, [ruleStart, ruleEvery, ruleTimes]);
 
             const fireConfetti = () => {
-                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#007AFF', '#34C759', '#FFD60A'] });
+                const count = 150;
+                const defaults = {
+                    origin: { y: 0.7 },
+                    colors: ['#007AFF', '#34C759', '#FFD60A']
+                };
+
+                function fire(particleRatio, opts) {
+                    confetti({
+                        ...defaults,
+                        ...opts,
+                        particleCount: Math.floor(count * particleRatio)
+                    });
+                }
+
+                fire(0.25, { spread: 26, startVelocity: 55, origin: { x: 0, y: 0.7 }, angle: 60 });
+                fire(0.25, { spread: 26, startVelocity: 55, origin: { x: 1, y: 0.7 }, angle: 120 });
+                fire(0.5, { spread: 60, origin: { x: 0.5, y: 0.8 } });
             };
 
             function updateProject(updated) {
