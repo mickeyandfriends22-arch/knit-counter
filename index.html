@@ -36,7 +36,7 @@
             });
             const [selectedId, setSelectedId] = useState(() => Number(localStorage.getItem("selected-project")) || (projects[0]?.id));
             const [activeAlert, setActiveAlert] = useState(null);
-            const [warningMessage, setWarningMessage] = useState(null);
+            const [warning, setWarning] = useState({ message: null, type: null });
             const [ruleModalOpen, setRuleModalOpen] = useState(false);
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -97,6 +97,7 @@
                 ruleBg: darkMode ? "rgba(0, 122, 255, 0.15)" : "#EBF5FF",
                 inputBg: darkMode ? "#2C2C2E" : "#F2F2F7",
                 danger: "#FF3B30",
+                warning: "#FF9500",
                 gray: darkMode ? "#3A3A3C" : "#E5E5EA"
             };
 
@@ -114,13 +115,19 @@
                 const now = Date.now();
                 const diff = now - lastClickTime.current;
                 
-                // 2秒以内の連打のみガード
-                if (diff < 2000) {
-                    setWarningMessage("押し間違い！");
-                    setTimeout(() => setWarningMessage(null), 1200);
+                // 2秒以内：ガードして警告（赤）
+                if (diff < 2000 && lastClickTime.current !== 0) {
+                    setWarning({ message: "押し間違い！", type: "danger" });
+                    setTimeout(() => setWarning({ message: null, type: null }), 1200);
                     return;
-                }
+                } 
                 
+                // 10秒以内：カウントは進めるが通知（オレンジ）
+                if (diff < 10000 && lastClickTime.current !== 0) {
+                    setWarning({ message: "連打中...？🤔", type: "warning" });
+                    setTimeout(() => setWarning({ message: null, type: null }), 1000);
+                }
+
                 lastClickTime.current = now;
                 const newCount = currentProject.count + delta;
                 if (newCount < 0) return;
@@ -179,8 +186,10 @@
 
                     <div style={styles.mainCard}>
                         <div style={{minHeight: 40}}>
-                            {warningMessage ? (
-                                <div style={{ color: theme.danger, fontWeight: "bold", fontSize: 18, animation: "bounce 0.3s ease infinite alternate" }}>⚠️ {warningMessage}</div>
+                            {warning.message ? (
+                                <div style={{ color: theme[warning.type], fontWeight: "bold", fontSize: 18, animation: warning.type === "danger" ? "bounce 0.3s ease infinite alternate" : "none" }}>
+                                    {warning.type === "danger" ? "⚠️" : "🕒"} {warning.message}
+                                </div>
                             ) : nextGoal && (
                                 <button onClick={() => setScheduleOpen(true)} style={{background:theme.ruleBg, border:"none", borderRadius:15, padding:"6px 16px", color:theme.accent, fontWeight:"bold", fontSize:14}}>
                                     次は {nextGoal.step}段目 ({nextGoal.action}) ▾
