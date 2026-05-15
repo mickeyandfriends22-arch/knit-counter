@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="ja"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>編み物ログ Stable</title>
+    <title>編み物ログ Recovery</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -13,15 +13,9 @@
         @media (prefers-color-scheme: dark) { body { background-color: #000; } }
         .btn-active:active { transform: scale(0.95); opacity: 0.7; }
         
-        /* 数字の上の横並びエリア */
         .status-row { 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            gap: 15px; 
-            min-height: 30px; 
-            margin-bottom: 5px;
-            width: 100%;
+            display: flex; justify-content: center; align-items: center; gap: 15px; 
+            min-height: 30px; margin-bottom: 5px; width: 100%;
         }
         .status-item { font-weight: 800; font-size: 15px; white-space: nowrap; }
         .next-label { color: #FF3B30; }
@@ -30,24 +24,29 @@
         .main-card { border-radius: 40px; padding: 30px 20px; text-align: center; background: #FFF; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         @media (prefers-color-scheme: dark) { .main-card { background: #1C1C1E; } }
         
-        .counter-num { font-size: 110px; font-weight: 900; lineHeight: 1; margin: 5px 0; }
-        .progress-bar { height: 24px; background: #E5E5EA; border-radius: 12px; position: relative; overflow: hidden; margin: 15px 0; }
-        @media (prefers-color-scheme: dark) { .progress-bar { background: #2C2C2E; } }
-        .progress-fill { height: 100%; background: #007AFF; transition: width 0.3s; }
+        .counter-num { font-size: 110px; font-weight: 900; line-height: 1; margin: 5px 0; }
     </style></head><body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        const { useState, useEffect, useMemo } = React;
 
         function App() {
-            // データ消失防止のためキーを固定
-            const STORAGE_KEY = "knit-app-v4-stable";
+            // 過去に使用した可能性のある全てのキーをチェック
+            const KEYS = ["knit-app-v4-stable", "knit-projects-v3", "knit-projects"];
             
             const [projects, setProjects] = useState(() => {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                return saved ? JSON.parse(saved) : [{ id: 1, name: "作品1", count: 0, targetCount: 0, history: [], rules: [] }];
+                for (let key of KEYS) {
+                    const saved = localStorage.getItem(key);
+                    if (saved) return JSON.parse(saved);
+                }
+                return [{ id: Date.now(), name: "作品1", count: 0, targetCount: 0, history: [], rules: [] }];
             });
-            const [selectedId, setSelectedId] = useState(() => Number(localStorage.getItem(STORAGE_KEY + "_id")) || 1);
+
+            const [selectedId, setSelectedId] = useState(() => {
+                const lastId = localStorage.getItem("selected-id-v3") || localStorage.getItem("knit-app-v4-stable_id");
+                return Number(lastId) || (projects[0]?.id);
+            });
+
             const [ruleModalOpen, setRuleModalOpen] = useState(false);
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [activeAlert, setActiveAlert] = useState(null);
@@ -56,30 +55,29 @@
 
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
 
-            // 保存処理
+            // 保存時は常に最新キーとv3キーの両方に書き込む（バックアップ）
             useEffect(() => {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-                localStorage.setItem(STORAGE_KEY + "_id", selectedId);
+                const data = JSON.stringify(projects);
+                localStorage.setItem("knit-projects-v3", data);
+                localStorage.setItem("knit-app-v4-stable", data);
+                localStorage.setItem("selected-id-v3", selectedId.toString());
             }, [projects, selectedId]);
 
-            // 全てのマイルストーン計算
             const allPoints = useMemo(() => {
                 let pts = [];
-                currentProject.rules.forEach(r => {
-                    const limit = r.times === 0 ? 500 : r.times;
+                (currentProject.rules || []).forEach(r => {
+                    const limit = (r.times === 0 || !r.times) ? 500 : r.times;
                     for(let i=0; i<limit; i++) {
-                        pts.push({ step: r.start + (i * r.every), action: r.action, isPattern: r.isPattern });
+                        pts.push({ step: Number(r.start) + (i * Number(r.every)), action: r.action, isPattern: r.isPattern });
                     }
                 });
                 return pts.sort((a,b) => a.step - b.step);
             }, [currentProject.rules]);
 
-            // 次の通常ルール
             const nextNormal = useMemo(() => allPoints.find(p => p.step > currentProject.count && !p.isPattern), [allPoints, currentProject.count]);
 
-            // 編み込み進捗計算
             const patternStatus = useMemo(() => {
-                const rule = currentProject.rules.find(r => r.isPattern && currentProject.count >= r.start && (r.times === 0 || currentProject.count < (r.start + r.every * r.times)));
+                const rule = (currentProject.rules || []).find(r => r.isPattern && currentProject.count >= r.start && (!r.times || currentProject.count < (Number(r.start) + Number(r.every) * Number(r.times))));
                 if (!rule) return null;
                 const pos = (currentProject.count - rule.start) % rule.every;
                 const lap = Math.floor((currentProject.count - rule.start) / rule.every) + 1;
@@ -90,80 +88,77 @@
                 const nextVal = Math.max(0, currentProject.count + delta);
                 if (delta > 0) {
                     const hit = allPoints.find(p => p.step === nextVal && !p.isPattern);
-                    if (hit) setActiveAlert(hit.action);
-                    if ("vibrate" in navigator) navigator.vibrate(15);
+                    if (hit) {
+                        setActiveAlert(hit.action);
+                        if ("vibrate" in navigator) navigator.vibrate([15, 15]);
+                    }
                 }
                 const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const newHist = [{ time, action: delta > 0 ? "+1" : "-1", count: nextVal }, ...(currentProject.history || [])].slice(0, 10);
+                const newHist = [{ time, action: delta > 0 ? "+1" : "-1", count: nextVal }, ...(currentProject.history || [])].slice(0, 15);
                 setProjects(prev => prev.map(p => p.id === selectedId ? { ...p, count: nextVal, history: newHist } : p));
             };
 
             const [rStart, setRStart] = useState(0);
             const [rEvery, setREvery] = useState(10);
-            const [rTimes, setRTimes] = useState(0);
             const [rAction, setRAction] = useState("");
             const [rIsPat, setRIsPat] = useState(false);
 
             return (
                 <div style={{ minHeight: "100vh", padding: "40px 20px", background: darkMode ? "#000" : "#F2F2F7", color: darkMode ? "#FFF" : "#000" }}>
-                    
                     <div style={{display:"flex", gap:10, marginBottom:20}}>
                         <div style={{display:"flex", gap:8, overflowX:"auto", flex:1}}>
                             {projects.map(p => (
-                                <button key={p.id} onClick={() => setSelectedId(p.id)} style={{ border:"none", borderRadius:12, padding:"10px 18px", fontWeight:"bold", background: p.id === selectedId ? "#007AFF" : (darkMode ? "#2C2C2E" : "#E5E5EA"), color: p.id === selectedId ? "#FFF" : (darkMode ? "#FFF" : "#000") }}>{p.name}</button>
+                                <button key={p.id} onClick={() => setSelectedId(p.id)} style={{ border:"none", borderRadius:12, padding:"10px 18px", fontWeight:"bold", background: p.id === selectedId ? "#007AFF" : (darkMode ? "#2C2C2E" : "#E5E5EA"), color: p.id === selectedId ? "#FFF" : (darkMode ? "#FFF" : "#000"), whiteSpace:"nowrap" }}>{p.name}</button>
                             ))}
                         </div>
-                        <button onClick={() => setSettingsOpen(true)} style={{border:"none", borderRadius:12, width:40, background: darkMode ? "#2C2C2E" : "#E5E5EA"}}>⚙️</button>
+                        <button onClick={() => setSettingsOpen(true)} style={{border:"none", borderRadius:12, width:40, height:40, background: darkMode ? "#2C2C2E" : "#E5E5EA"}}>⚙️</button>
                     </div>
 
                     <div className="main-card">
-                        {/* 数字の上の横並び表示エリア */}
                         <div className="status-row">
                             {nextNormal && <div className="status-item next-label">次は{nextNormal.step}段目</div>}
                             {patternStatus && <div className="status-item pattern-label">{patternStatus}</div>}
                         </div>
-
                         <div className="counter-num">{currentProject.count}</div>
-                        
-                        <div style={{ display: "flex", gap: "15px" }}>
+                        <div style={{ display: "flex", gap: "15px", marginTop: 10 }}>
                             <button className="btn-active" onClick={() => handleCount(-1)} style={{ width: "80px", height: "80px", borderRadius: "25px", border: "none", fontSize: "30px", background: darkMode ? "#2C2C2E" : "#E5E5EA", color: darkMode ? "#FFF" : "#000" }}>−</button>
                             <button className="btn-active" onClick={() => handleCount(1)} style={{ flex: 1, height: "80px", borderRadius: "25px", border: "none", fontSize: "40px", background: "#007AFF", color: "white", fontWeight: "bold" }}>＋</button>
                         </div>
                     </div>
 
                     <div style={{display:"flex", justifyContent:"space-between", marginTop:30, marginBottom:10, alignItems:"center"}}>
-                        <span style={{fontWeight:"bold", opacity:0.5}}>ルール</span>
-                        <button onClick={() => { setEditingRuleIndex(null); setRStart(currentProject.count); setREvery(10); setRTimes(0); setRAction("模様"); setRIsPat(true); setRuleModalOpen(true); }} style={{background:"none", border:"none", color:"#007AFF", fontWeight:"bold"}}>+ 追加</button>
+                        <span style={{fontWeight:"bold", opacity:0.5}}>ルール設定</span>
+                        <button onClick={() => { setEditingRuleIndex(null); setRStart(currentProject.count); setREvery(10); setRAction("模様"); setRIsPat(true); setRuleModalOpen(true); }} style={{background:"none", border:"none", color:"#007AFF", fontWeight:"bold"}}>+ 追加</button>
                     </div>
 
-                    {currentProject.rules.map((r, i) => (
-                        <div key={i} onClick={() => { setEditingRuleIndex(i); setRStart(r.start); setREvery(r.every); setRTimes(r.times); setRAction(r.action); setRIsPat(r.isPattern); setRuleModalOpen(true); }} style={{ padding: 15, background: darkMode ? "#1C1C1E" : "#FFF", borderRadius: 15, marginBottom: 10, display: "flex", justifyContent: "space-between", borderLeft: `5px solid ${r.isPattern ? "#007AFF" : "#FF3B30"}` }}>
+                    {(currentProject.rules || []).map((r, i) => (
+                        <div key={i} onClick={() => { setEditingRuleIndex(i); setRStart(r.start); setREvery(r.every); setRAction(r.action); setRIsPat(r.isPattern); setRuleModalOpen(true); }} style={{ padding: 15, background: darkMode ? "#1C1C1E" : "#FFF", borderRadius: 15, marginBottom: 10, display: "flex", justifyContent: "space-between", borderLeft: `5px solid ${r.isPattern ? "#007AFF" : "#FF3B30"}` }}>
                             <div style={{fontWeight:"bold"}}>{r.action} <span style={{fontSize:11, opacity:0.5}}>{r.start}段〜 {r.every}毎</span></div>
-                            <span style={{opacity:0.3}}>Edit</span>
+                            <span style={{opacity:0.3}}>編集</span>
                         </div>
                     ))}
 
                     {ruleModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "flex-end", zIndex: 1000 }} onClick={() => setRuleModalOpen(false)}>
                             <div style={{ width: "100%", borderRadius: "30px 30px 0 0", padding: 25, background: darkMode ? "#1C1C1E" : "#FFF" }} onClick={e => e.stopPropagation()}>
-                                <label style={{display:"flex", alignItems:"center", gap:10, marginBottom:15}}><input type="checkbox" checked={rIsPat} onChange={e=>setRIsPat(e.target.checked)} /> 編み込みモード</label>
+                                <label style={{display:"flex", alignItems:"center", gap:10, marginBottom:15}}><input type="checkbox" checked={rIsPat} onChange={e=>setRIsPat(e.target.checked)} style={{width:20, height:20}}/> 編み込みモード (〇/〇表示)</label>
                                 <div style={{display:"flex", gap:10, marginBottom:10}}>
-                                    <div style={{flex:1}}>開始<input type="number" value={rStart} onChange={e=>setRStart(Number(e.target.value))} style={{width:"100%", padding:10}}/></div>
-                                    <div style={{flex:1}}>間隔<input type="number" value={rEvery} onChange={e=>setREvery(Number(e.target.value))} style={{width:"100%", padding:10}}/></div>
+                                    <div style={{flex:1}}>開始<input type="number" value={rStart} onChange={e=>setRStart(Number(e.target.value))} style={{width:"100%", padding:12, borderRadius:8, border:"1px solid #CCC"}}/></div>
+                                    <div style={{flex:1}}>間隔<input type="number" value={rEvery} onChange={e=>setREvery(Number(e.target.value))} style={{width:"100%", padding:12, borderRadius:8, border:"1px solid #CCC"}}/></div>
                                 </div>
-                                内容<input type="text" value={rAction} onChange={e=>setRAction(e.target.value)} style={{width:"100%", padding:10, marginBottom:20}}/>
+                                内容<input type="text" value={rAction} onChange={e=>setRAction(e.target.value)} style={{width:"100%", padding:12, borderRadius:8, border:"1px solid #CCC", marginBottom:20}}/>
                                 <div style={{display:"flex", gap:10}}>
-                                    {editingRuleIndex !== null && <button onClick={() => { setProjects(prev => prev.map(p => p.id === selectedId ? {...p, rules: p.rules.filter((_, idx) => idx !== editingRuleIndex)} : p)); setRuleModalOpen(false); }} style={{flex:1, padding:12, background:"#FF3B3022", color:"#FF3B30", border:"none", borderRadius:10}}>削除</button>}
+                                    {editingRuleIndex !== null && <button onClick={() => { setProjects(prev => prev.map(p => p.id === selectedId ? {...p, rules: p.rules.filter((_, idx) => idx !== editingRuleIndex)} : p)); setRuleModalOpen(false); }} style={{flex:1, padding:15, background:"#FF3B3022", color:"#FF3B30", border:"none", borderRadius:12, fontWeight:"bold"}}>削除</button>}
                                     <button onClick={() => {
-                                        const newR = {start: rStart, every: rEvery, times: rTimes, action: rAction, isPattern: rIsPat};
+                                        const newR = {start: rStart, every: rEvery, times: 0, action: rAction, isPattern: rIsPat};
                                         setProjects(prev => prev.map(p => {
                                             if(p.id !== selectedId) return p;
-                                            let rs = [...p.rules];
+                                            let rs = [...(p.rules || [])];
                                             if(editingRuleIndex !== null) rs[editingRuleIndex] = newR; else rs.push(newR);
                                             return {...p, rules: rs};
                                         }));
                                         setRuleModalOpen(false);
-                                    }} style={{flex:2, padding:12, background:"#007AFF", color:"white", border:"none", borderRadius:10}}>保存</button>
+                                    }} style={{flex:2, padding:15, background:"#007AFF", color:"white", border:"none", borderRadius:12, fontWeight:"bold"}}>保存</button>
                                 </div>
                             </div>
                         </div>
@@ -172,18 +167,15 @@
                     {settingsOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", padding: 20, zIndex: 1000 }} onClick={() => setSettingsOpen(false)}>
                             <div style={{ width: "100%", borderRadius: 25, padding: 25, background: darkMode ? "#1C1C1E" : "#FFF" }} onClick={e => e.stopPropagation()}>
+                                <h3 style={{marginTop:0}}>設定</h3>
                                 作品名<input type="text" value={currentProject.name} onChange={e => {
                                     const val = e.target.value;
                                     setProjects(prev => prev.map(p => p.id === selectedId ? {...p, name: val} : p));
                                 }} style={{width:"100%", padding:10, marginBottom:15}} />
-                                目標段数<input type="number" value={currentProject.targetCount} onChange={e => {
-                                    const val = Number(e.target.value);
-                                    setProjects(prev => prev.map(p => p.id === selectedId ? {...p, targetCount: val} : p));
-                                }} style={{width:"100%", padding:10, marginBottom:20}} />
                                 <button onClick={() => {
                                     const n = { id: Date.now(), name: "新規作品", count: 0, targetCount: 0, history: [], rules: [] };
                                     setProjects([...projects, n]); setSelectedId(n.id); setSettingsOpen(false);
-                                }} style={{width:"100%", padding:12, background:"#007AFF", color:"#FFF", border:"none", borderRadius:10, marginBottom:10}}>作品を追加</button>
+                                }} style={{width:"100%", padding:12, background:"#007AFF", color:"#FFF", border:"none", borderRadius:10, marginBottom:10, fontWeight:"bold"}}>＋ 新しい作品を追加</button>
                                 <button onClick={() => setSettingsOpen(false)} style={{width:"100%", padding:12, background:darkMode?"#FFF":"#000", color:darkMode?"#000":"#FFF", border:"none", borderRadius:10}}>閉じる</button>
                             </div>
                         </div>
@@ -191,9 +183,9 @@
 
                     {activeAlert && (
                         <div style={{ position: "fixed", inset: 0, background: "#FF3B30", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }} onClick={() => setActiveAlert(null)}>
-                            <div style={{ textAlign: "center", color: "white" }}>
+                            <div style={{ textAlign: "center", color: "white", padding:20 }}>
                                 <div style={{ fontSize: 60, fontWeight: "900" }}>{activeAlert}</div>
-                                <div style={{ marginTop: 40, padding: "10px 30px", border: "2px solid white", borderRadius: 10 }}>OK</div>
+                                <div style={{ marginTop: 40, fontSize: 24 }}>了解</div>
                             </div>
                         </div>
                     )}
