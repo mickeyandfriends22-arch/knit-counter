@@ -21,6 +21,7 @@
         .guide-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; color: white; text-align: center; }
         .history-item { display: flex; justify-content: space-between; padding: 12px 0; align-items: center; }
         .bg-illust { position: fixed; bottom: -20px; right: -20px; font-size: 150px; opacity: 0.05; z-index: -1; pointer-events: none; }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-3px); } }
     </style>
 </head>
 <body>
@@ -113,13 +114,10 @@
                 const now = Date.now();
                 const diff = now - lastClickTime.current;
                 
+                // 2秒以内の連打のみガード
                 if (diff < 2000) {
                     setWarningMessage("押し間違い！");
-                    setTimeout(() => setWarningMessage(null), 1500);
-                    return;
-                } else if (diff < 10000) {
-                    setWarningMessage("押しすぎ注意！");
-                    setTimeout(() => setWarningMessage(null), 1500);
+                    setTimeout(() => setWarningMessage(null), 1200);
                     return;
                 }
                 
@@ -277,6 +275,18 @@
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setSettingsOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card }} onClick={e => e.stopPropagation()}>
                                 <h3 style={{ marginTop: 0, marginBottom: 20 }}>アプリの設定</h3>
+                                
+                                <div style={{marginBottom: 25}}>
+                                    <span style={{fontSize: 13, opacity: 0.5, display: "block", marginBottom: 8}}>現在の段数を修正</span>
+                                    <div style={{display: "flex", gap: 10}}>
+                                        <input type="number" value={currentProject.count} onChange={e => {
+                                            const val = Number(e.target.value);
+                                            updateProject({...currentProject, count: val});
+                                        }} style={{flex: 1, padding: 16, borderRadius: 15, border: "none", background: theme.inputBg, color: theme.text, fontSize: 18, fontWeight: "bold", textAlign: "center"}} />
+                                        <button onClick={() => setSettingsOpen(false)} style={{padding: "0 20px", background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold"}}>反映</button>
+                                    </div>
+                                </div>
+
                                 <button onClick={() => setDarkMode(!darkMode)} style={{ width: "100%", padding: 16, borderRadius: 15, border: "none", background: theme.gray, color: theme.text, fontSize:15, marginBottom: 10, fontWeight: "bold" }}>モード切替: {darkMode ? "ライト" : "ダーク"}</button>
                                 <button onClick={() => { setShowGuide(true); setSettingsOpen(false); }} style={{ width: "100%", padding: 16, borderRadius: 15, border: "none", background: theme.gray, color: theme.text, fontSize:15, marginBottom: 10, fontWeight: "bold" }}>ホーム画面に追加する方法</button>
                                 <button onClick={() => { if(confirm("この作品を完全に削除しますか？")){ const next = projects.filter(p=>p.id!==selectedId); setProjects(next.length?next:[{id:Date.now(), name:"作品1", count:0, rules:[], history:[]}]); setSelectedId(next[0]?.id || Date.now()); setSettingsOpen(false); } }} style={{ width: "100%", padding: 16, border: "none", background: "#FF3B3015", color: theme.danger, borderRadius: 15, fontWeight: "bold", marginTop: 10 }}>作品を削除</button>
