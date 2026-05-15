@@ -20,12 +20,17 @@
         .history-item { display: flex; justify-content: space-between; padding: 12px 0; align-items: center; }
         .bg-illust { position: fixed; bottom: -20px; right: -20px; font-size: 150px; opacity: 0.05; z-index: -1; pointer-events: none; }
         
-        /* ステータス表示の共通スタイル */
         .pattern-status { background: #007AFF15; color: #007AFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid #007AFF33; }
         @media (prefers-color-scheme: dark) { .pattern-status { background: #007AFF33; } }
         
         .next-status { background: #007AFF; color: #FFFFFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(0,122,255,0.3); }
         .next-status:active { transform: scale(0.96); opacity: 0.9; }
+
+        /* プログレスバーのスタイル */
+        .progress-container { width: 100%; background: #E5E5EA; height: 24px; border-radius: 12px; position: relative; overflow: hidden; margin: 15px 0; }
+        @media (prefers-color-scheme: dark) { .progress-container { background: #2C2C2E; } }
+        .progress-bar { height: 100%; background: #007AFF; transition: width 0.3s ease; border-radius: 12px; }
+        .progress-label { position: absolute; width: 100%; top: 0; left: 0; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: bold; color: #FFF; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
     </style></head><body>
     <div id="root"></div>
     <script type="text/babel">
@@ -34,7 +39,8 @@
         function App() {
             const [projects, setProjects] = useState(() => {
                 const saved = localStorage.getItem("knit-projects");
-                return saved ? JSON.parse(saved) : [{ id: Date.now(), name: "作品1", count: 0, history: [], rules: [], memo: "" }];
+                // 目標段数(targetCount)の初期値を確保
+                return saved ? JSON.parse(saved).map(p => ({...p, targetCount: p.targetCount || 0})) : [{ id: Date.now(), name: "作品1", count: 0, targetCount: 0, history: [], rules: [] }];
             });
             const [selectedId, setSelectedId] = useState(() => Number(localStorage.getItem("selected-project")) || (projects[0]?.id));
             const [activeAlert, setActiveAlert] = useState(null);
@@ -77,6 +83,12 @@
                 return points.sort((a, b) => a.step - b.step);
             }, [currentProject.rules]);
 
+            const progressInfo = useMemo(() => {
+                if (!currentProject.targetCount || currentProject.targetCount === 0) return null;
+                const percent = Math.min(100, Math.floor((currentProject.count / currentProject.targetCount) * 100));
+                return { percent, text: `${percent}% (${currentProject.count}/${currentProject.targetCount})` };
+            }, [currentProject.count, currentProject.targetCount]);
+
             const rulePreview = useMemo(() => {
                 if (ruleEvery <= 0) return "";
                 let previewSteps = [];
@@ -96,8 +108,8 @@
                 card: darkMode ? "#1C1C1E" : "#FFF",
                 text: darkMode ? "#FFF" : "#000",
                 accent: "#007AFF",
-                ruleNormalBg: darkMode ? "#2C2C2E" : "#E5E5EA", // 通常のルールの背景色
-                rulePatternBg: darkMode ? "rgba(0, 122, 255, 0.25)" : "#007AFF15", // 編み込みルールの背景色
+                ruleNormalBg: darkMode ? "#2C2C2E" : "#E5E5EA",
+                rulePatternBg: darkMode ? "rgba(0, 122, 255, 0.25)" : "#007AFF15",
                 inputBg: darkMode ? "#2C2C2E" : "#F2F2F7",
                 danger: "#FF3B30",
                 gray: darkMode ? "#3A3A3C" : "#E5E5EA"
@@ -169,6 +181,14 @@
                     <div style={{ borderRadius: "40px", padding: "25px 20px", textAlign: "center", background: theme.card, boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
                         <div style={{minHeight: 40, display:"flex", justifyContent:"center", alignItems:"center"}}>{statusDisplay}</div>
                         <div style={{ fontSize: "120px", fontWeight: "900", lineHeight: 1, margin: "10px 0" }}>{currentProject.count}</div>
+                        
+                        {progressInfo && (
+                            <div className="progress-container">
+                                <div className="progress-bar" style={{ width: `${progressInfo.percent}%`, background: progressInfo.percent >= 100 ? "#34C759" : theme.accent }}></div>
+                                <div className="progress-label" style={{ color: progressInfo.percent > 50 ? "#FFF" : theme.text }}>{progressInfo.text}</div>
+                            </div>
+                        )}
+
                         <div style={{ display: "flex", gap: "15px", marginTop: "10px" }}>
                             <button className="btn-active" onClick={() => handleCountChange(-1)} style={{ width: "80px", height: "85px", borderRadius: "25px", border: "none", fontSize: "32px", background: theme.gray, color: theme.text }}>−</button>
                             <button className="btn-active" onClick={() => handleCountChange(1)} style={{ flex: 1, height: "85px", borderRadius: "25px", border: "none", fontSize: "40px", background: theme.accent, color: "white", fontWeight: "bold" }}>＋</button>
@@ -234,6 +254,27 @@
                         </div>
                     )}
 
+                    {settingsOpen && (
+                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setSettingsOpen(false)}>
+                            <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card }} onClick={e => e.stopPropagation()}>
+                                <h3 style={{marginTop:0}}>アプリの設定</h3>
+                                <div style={{display:"flex", gap:15, marginBottom:20}}>
+                                    <div style={{flex:1}}>
+                                        <span style={{fontSize: 12, opacity: 0.5}}>段数の修正</span>
+                                        <input type="number" value={currentProject.count} onChange={e => updateProject({...currentProject, count: Number(e.target.value)})} style={{width: "100%", padding:15, borderRadius:15, border:"none", background:theme.inputBg, color:theme.text, fontSize:18, textAlign:"center", fontWeight:"bold"}} />
+                                    </div>
+                                    <div style={{flex:1}}>
+                                        <span style={{fontSize: 12, opacity: 0.5}}>目標段数 (0=無効)</span>
+                                        <input type="number" value={currentProject.targetCount || 0} onChange={e => updateProject({...currentProject, targetCount: Number(e.target.value)})} style={{width: "100%", padding:15, borderRadius:15, border:"none", background:theme.inputBg, color:theme.text, fontSize:18, textAlign:"center", fontWeight:"bold"}} />
+                                    </div>
+                                </div>
+                                <button onClick={() => { setDarkMode(!darkMode); setSettingsOpen(false); }} style={{ width: "100%", padding: 16, borderRadius: 15, border: "none", background: theme.gray, color: theme.text, marginBottom: 10, fontWeight: "bold" }}>モード切替: {darkMode ? "ライト" : "ダーク"}</button>
+                                <button onClick={() => { if(confirm("作品を削除しますか？")){ const next = projects.filter(p=>p.id!==selectedId); setProjects(next.length?next:[{id:Date.now(), name:"作品1", count:0, targetCount:0, rules:[], history:[]}]); setSelectedId(next[0]?.id || Date.now()); setSettingsOpen(false); } }} style={{ width: "100%", padding: 16, border: "none", background: "#FF3B3015", color: theme.danger, borderRadius: 15, fontWeight: "bold" }}>作品を削除</button>
+                                <button onClick={() => setSettingsOpen(false)} style={{ width: "100%", padding: 16, border: "none", background: "none", color: theme.text, opacity:0.5 }}>閉じる</button>
+                            </div>
+                        </div>
+                    )}
+
                     {scheduleOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setScheduleOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "70vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
@@ -245,29 +286,6 @@
                                     </div>
                                 ))}
                                 <button onClick={() => setScheduleOpen(false)} style={{ width: "100%", padding: 18, background: theme.text, color: theme.bg, borderRadius: 15, border: "none", fontWeight: "bold", marginTop: 10 }}>閉じる</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {settingsOpen && (
-                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setSettingsOpen(false)}>
-                            <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card }} onClick={e => e.stopPropagation()}>
-                                <h3 style={{marginTop:0}}>アプリの設定</h3>
-                                <div style={{marginBottom: 20}}>
-                                    <span style={{fontSize: 12, opacity: 0.5}}>段数の修正</span>
-                                    <input type="number" value={currentProject.count} onChange={e => updateProject({...currentProject, count: Number(e.target.value)})} style={{width: "100%", padding:15, borderRadius:15, border:"none", background:theme.inputBg, color:theme.text, fontSize:18, textAlign:"center", fontWeight:"bold"}} />
-                                </div>
-                                <button onClick={() => { setDarkMode(!darkMode); setSettingsOpen(false); }} style={{ width: "100%", padding: 16, borderRadius: 15, border: "none", background: theme.gray, color: theme.text, marginBottom: 10, fontWeight: "bold" }}>モード切替: {darkMode ? "ライト" : "ダーク"}</button>
-                                <button onClick={() => { if(confirm("作品を削除しますか？")){ const next = projects.filter(p=>p.id!==selectedId); setProjects(next.length?next:[{id:Date.now(), name:"作品1", count:0, rules:[], history:[]}]); setSelectedId(next[0]?.id || Date.now()); setSettingsOpen(false); } }} style={{ width: "100%", padding: 16, border: "none", background: "#FF3B3015", color: theme.danger, borderRadius: 15, fontWeight: "bold" }}>作品を削除</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeAlert && (
-                        <div style={{ position: "fixed", inset: 0, background: theme.accent, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }} onClick={() => setActiveAlert(null)}>
-                            <div style={{ textAlign: "center", color: "white" }}>
-                                <div style={{ fontSize: 80, fontWeight: "900" }}>{activeAlert}</div>
-                                <div style={{ marginTop: 40, padding: "15px 50px", border: "3px solid white", borderRadius: 20, fontWeight: "bold" }}>OK</div>
                             </div>
                         </div>
                     )}
