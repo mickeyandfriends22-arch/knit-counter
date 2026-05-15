@@ -108,14 +108,20 @@
             const addHistory = (newCount, actionType) => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const newHistory = [{ 
-                    time: timeStr, 
-                    action: actionType, 
-                    count: newCount, 
-                    isNegative: actionType === "-1" 
-                }, ...(currentProject.history || [])].slice(0, 15);
+                const newHistory = [{ time: timeStr, action: actionType, count: newCount, isNegative: actionType === "-1" }, ...(currentProject.history || [])].slice(0, 15);
                 updateProject({ ...currentProject, count: newCount, history: newHistory });
             };
+
+            const StepInput = ({ label, value, onChange }) => (
+                <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 11, opacity: 0.6, marginBottom: 4, display: "block" }}>{label}</span>
+                    <div style={{ display: "flex", alignItems: "center", background: theme.inputBg, borderRadius: 12, padding: "2px" }}>
+                        <button style={{ width: 35, height: 35, border: "none", background: "none", color: theme.accent, fontSize: 20 }} onClick={() => onChange(Math.max(0, value - 1))}>−</button>
+                        <input type="number" value={value} onChange={e => onChange(Number(e.target.value))} style={{ flex: 1, border: "none", background: "none", textAlign: "center", color: theme.text, fontSize: 16, width: "100%" }} />
+                        <button style={{ width: 35, height: 35, border: "none", background: "none", color: theme.accent, fontSize: 20 }} onClick={() => onChange(value + 1)}>+</button>
+                    </div>
+                </div>
+            );
 
             const nextGoal = allMilestones.find(m => m.step > currentProject.count);
             const history = currentProject.history || [];
@@ -150,23 +156,11 @@
                         </div>
                         <div style={styles.bigNumber}>{currentProject.count}</div>
                         <div style={styles.btnContainer}>
-                            <button className="btn-active" onClick={() => {
-                                if (currentProject.count > 0) {
-                                    if ("vibrate" in navigator) navigator.vibrate(15);
-                                    addHistory(currentProject.count - 1, "-1");
-                                }
-                            }} style={styles.minusBtn}>−</button>
-                            <button className="btn-active" onClick={() => {
-                                const newCount = currentProject.count + 1;
-                                if ("vibrate" in navigator) navigator.vibrate(15);
-                                const hit = allMilestones.find(m => m.step === newCount);
-                                if (hit) setActiveAlert(hit.action);
-                                addHistory(newCount, "+1");
-                            }} style={styles.plusBtn}>＋</button>
+                            <button className="btn-active" onClick={() => { if (currentProject.count > 0) { if ("vibrate" in navigator) navigator.vibrate(15); addHistory(currentProject.count - 1, "-1"); } }} style={styles.minusBtn}>−</button>
+                            <button className="btn-active" onClick={() => { const newCount = currentProject.count + 1; if ("vibrate" in navigator) navigator.vibrate(15); const hit = allMilestones.find(m => m.step === newCount); if (hit) setActiveAlert(hit.action); addHistory(newCount, "+1"); }} style={styles.plusBtn}>＋</button>
                         </div>
                     </div>
 
-                    {/* ルールセクション */}
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginTop: 25, marginBottom: 10}}>
                         <span style={styles.sectionLabel}>進行中のルール</span>
                         <button onClick={() => { setEditingRuleIndex(null); setRuleStart(currentProject.count); setRuleEvery(0); setRuleTimes(0); setRuleAction("増し目"); setRuleModalOpen(true); }} style={{background:"none", border:"none", color:theme.accent, fontWeight:"bold", fontSize:13, marginTop: 15}}>+ 追加</button>
@@ -206,26 +200,20 @@
                         )}
                     </div>
 
-                    {/* モーダル類（前回のコードを維持） */}
                     {ruleModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setRuleModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card }} onClick={e => e.stopPropagation()}>
                                 <h3 style={{ marginTop: 0 }}>{editingRuleIndex !== null ? "ルールを編集" : "ルールを追加"}</h3>
                                 <div style={{ display: "flex", gap: 10, marginBottom: 15 }}>
-                                    <div style={{flex:1}}>
-                                        <span style={{fontSize:11, opacity:0.6}}>開始段</span>
-                                        <input type="number" value={ruleStart} onChange={e=>setRuleStart(Number(e.target.value))} style={{width:"100%", padding:10, borderRadius:10, border:"none", background:theme.inputBg, color:theme.text, textAlign:"center"}} />
-                                    </div>
-                                    <div style={{flex:1}}>
-                                        <span style={{fontSize:11, opacity:0.6}}>間隔</span>
-                                        <input type="number" value={ruleEvery} onChange={e=>setRuleEvery(Number(e.target.value))} style={{width:"100%", padding:10, borderRadius:10, border:"none", background:theme.inputBg, color:theme.text, textAlign:"center"}} />
-                                    </div>
-                                    <div style={{flex:1}}>
-                                        <span style={{fontSize:11, opacity:0.6}}>回数</span>
-                                        <input type="number" value={ruleTimes} onChange={e=>setRuleTimes(Number(e.target.value))} style={{width:"100%", padding:10, borderRadius:10, border:"none", background:theme.inputBg, color:theme.text, textAlign:"center"}} />
-                                    </div>
+                                    <StepInput label="開始段" value={ruleStart} onChange={setRuleStart} />
+                                    <StepInput label="間隔" value={ruleEvery} onChange={setRuleEvery} />
+                                    <StepInput label="回数(0=無)" value={ruleTimes} onChange={setRuleTimes} />
                                 </div>
                                 内容<input type="text" value={ruleAction} onChange={e => setRuleAction(e.target.value)} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 16, marginTop: 5, marginBottom: 20 }} />
+                                <div style={{ marginBottom: 15, textAlign: "center", background: theme.inputBg, padding: "12px", borderRadius: "14px", border: `1px dashed ${theme.accent}44` }}>
+                                    <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4 }}>対象段数のプレビュー</div>
+                                    <div style={{ fontSize: 16, fontWeight: "bold", color: theme.accent }}>{rulePreview || "間隔を入力してください"}</div>
+                                </div>
                                 <div style={{display:"flex", gap: 10}}>
                                     {editingRuleIndex !== null && (
                                         <button onClick={() => { updateProject({...currentProject, rules: currentProject.rules.filter((_, idx) => idx !== editingRuleIndex)}); setRuleModalOpen(false); }} style={{ flex: 1, padding: 16, background: "#FF3B3015", color: theme.danger, border: "none", borderRadius: 15, fontWeight: "bold" }}>削除</button>
