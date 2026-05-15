@@ -18,10 +18,13 @@
         .rule-card:active { opacity: 0.6; background: #D1E9FF; }
         .history-item { display: flex; justify-content: space-between; padding: 12px 0; align-items: center; }
         .bg-illust { position: fixed; bottom: -20px; right: -20px; font-size: 150px; opacity: 0.05; z-index: -1; pointer-events: none; }
-        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-3px); } }
-        .pattern-status { background: #007AFF15; color: #007AFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid #007AFF33; }
-        .next-status { background: #8E8E9322; color: #8E8E93; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid #8882; }
-        @media (prefers-color-scheme: dark) { .next-status { color: #AEAEB2; } }
+        
+        /* 編み込みモード：濃い青 */
+        .pattern-status { background: #007AFF; color: #FFFFFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid #007AFF; }
+        
+        /* 次の予定：薄い青 */
+        .next-status { background: #007AFF15; color: #007AFF; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid #007AFF44; cursor: pointer; }
+        @media (prefers-color-scheme: dark) { .next-status { background: #007AFF33; } }
     </style></head><body>
     <div id="root"></div>
     <script type="text/babel">
@@ -74,7 +77,6 @@
                 return points.sort((a, b) => a.step - b.step);
             }, [currentProject.rules]);
 
-            // 設定画面のプレビューロジック
             const rulePreview = useMemo(() => {
                 if (ruleEvery <= 0) return "";
                 let previewSteps = [];
@@ -135,10 +137,8 @@
 
             const statusDisplay = useMemo(() => {
                 if (warning.message) return <div style={{ color: theme.danger, fontWeight: "bold" }}>⚠️ {warning.message}</div>;
-
                 const displayElements = [];
 
-                // 編み込みモードのステータス
                 const activePattern = (currentProject.rules || []).find(r => r.isPattern && currentProject.count >= r.start && r.every > 0);
                 if (activePattern) {
                     const diff = currentProject.count - activePattern.start;
@@ -152,19 +152,18 @@
                     }
                 }
 
-                // 通知の目標
                 const nextGoal = allMilestones.find(m => m.step > currentProject.count && !m.isPattern);
                 if (nextGoal) {
                     displayElements.push(
-                        <button key="next" onClick={() => setScheduleOpen(true)} className="next-status" style={{border: "none", cursor: "pointer"}}>
-                            次は {nextGoal.step}段目 ({nextGoal.action}) ▾
+                        <button key="next" onClick={() => setScheduleOpen(true)} className="next-status">
+                            次は {nextGoal.step}段 ({nextGoal.action}) ▾
                         </button>
                     );
                 }
 
                 return (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                        {displayElements.length > 0 ? displayElements : <div style={{opacity:0.3, fontSize:12}}>目標が設定されていません</div>}
+                        {displayElements.length > 0 ? displayElements : <div style={{opacity:0.3, fontSize:12}}>目標なし</div>}
                     </div>
                 );
             }, [currentProject.count, currentProject.rules, warning, allMilestones, theme]);
