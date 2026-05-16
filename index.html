@@ -118,7 +118,6 @@
             // マルチパーツ対応の英文パターン解析ロジック
             const parsedParts = useMemo(() => {
                 const rawText = currentProject.rawPatternText || "";
-                // 「---」または「終わり」で行を分割してパーツ化
                 const partBlocks = rawText.split(/\n\s*---\s*\n|\n\s*終わり\s*\n/i);
                 
                 return partBlocks.map((block, pIdx) => {
@@ -133,7 +132,6 @@
                         const trimmed = line.trim();
                         if (!trimmed) return;
 
-                        // 最初の行にタイトルらしき文字があればパーツ名にする
                         if (trimmed.startsWith("◆")) {
                             partName = trimmed;
                             return;
@@ -172,25 +170,25 @@
                 });
             }, [currentProject.rawPatternText]);
 
-            // 現在選択されているパーツのインデックス（安全弁付き）
             const activePartIndex = Math.min(currentProject.currentPartIndex || 0, Math.max(0, parsedParts.length - 1));
             const activePart = parsedParts[activePartIndex];
 
-            // 現在の段数に対応する指示を算出
+            // ★修正コアロジック：カウンターの数字が「0」の時に「1段目」のテキストを表示する
             const currentInstruction = useMemo(() => {
                 if (!activePart) return null;
                 const { explicitMap, repeatStart, repeatEnd } = activePart;
-                const current = currentProject.count;
+                
+                // 表示すべき段数 ＝ カウンターの値 ＋ 1
+                const targetRow = currentProject.count + 1;
 
-                if (current <= 0) return null;
-                if (explicitMap[current]) return explicitMap[current];
+                if (explicitMap[targetRow]) return { row: targetRow, text: explicitMap[targetRow] };
 
-                if (repeatStart && repeatEnd && repeatEnd >= repeatStart && current > repeatEnd) {
+                if (repeatStart && repeatEnd && repeatEnd >= repeatStart && targetRow > repeatEnd) {
                     const cycle = repeatEnd - repeatStart + 1;
-                    const relativeOffset = (current - repeatStart) % cycle;
+                    const relativeOffset = (targetRow - repeatStart) % cycle;
                     const equivalentRow = repeatStart + relativeOffset;
                     if (explicitMap[equivalentRow]) {
-                        return `[${equivalentRow}段目のリピート]: ${explicitMap[equivalentRow]}`;
+                        return { row: targetRow, text: `[${equivalentRow}段目のリピート]: ${explicitMap[equivalentRow]}` };
                     }
                 }
                 return null;
@@ -257,15 +255,15 @@
 
                 let nextPartIdx = activePartIndex;
 
-                // 次のパーツへの自動移行チェック (現在のパーツの最大段数を超えた場合)
-                if (delta > 0 && activePart && activePart.maxRow > 0 && newCount > activePart.maxRow) {
+                // 次のパーツへの自動移行チェック (カウンターが最大段数に達した状態で、さらに+が押された場合)
+                if (delta > 0 && activePart && activePart.maxRow > 0 && currentProject.count >= activePart.maxRow) {
                     if (activePartIndex < parsedParts.length - 1) {
-                        if (confirm(`🎉 ${activePart.partName} が完了しました！\n次のパーツの1段目に進みますか？`)) {
-                            newCount = 1;
+                        if (confirm(`🎉 ${activePart.partName} が完了しました！\n次のパーツに進みますか？`)) {
+                            newCount = 0; // 新パーツはカウンター0（＝1段目）から
                             nextPartIdx = activePartIndex + 1;
                             fireConfetti();
                         } else {
-                            newCount = currentProject.count; // キャンセルなら段数を維持
+                            newCount = currentProject.count;
                         }
                     }
                 }
@@ -338,12 +336,11 @@
 
                     <div style={{ borderRadius: "40px", padding: "25px 20px", textAlign: "center", background: theme.card, boxShadow: "0 10px 30px rgba(0,0,0,0.1)", marginBottom: 20 }}>
                         
-                        {/* 複数パーツ情報がある場合のナビゲーション */}
                         {parsedParts.length > 1 && activePart && (
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 10px" }}>
-                                <button className="part-nav-btn" disabled={activePartIndex === 0} style={{ opacity: activePartIndex === 0 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex - 1, count: 1 })}>◀ 前のパーツ</button>
+                                <button className="part-nav-btn" disabled={activePartIndex === 0} style={{ opacity: activePartIndex === 0 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex - 1, count: 0 })}>◀ 前のパーツ</button>
                                 <span style={{ fontSize: 12, fontWeight: "bold", opacity: 0.7 }}>{activePart.partName} ({activePartIndex + 1} / {parsedParts.length})</span>
-                                <button className="part-nav-btn" disabled={activePartIndex === parsedParts.length - 1} style={{ opacity: activePartIndex === parsedParts.length - 1 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex + 1, count: 1 })}>次へ ▶</button>
+                                <button className="part-nav-btn" disabled={activePartIndex === parsedParts.length - 1} style={{ opacity: activePartIndex === parsedParts.length - 1 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex + 1, count: 0 })}>次へ ▶</button>
                             </div>
                         )}
 
@@ -367,8 +364,8 @@
                     {currentInstruction && activePart && (
                         <div className="pattern-instruction-box">
                             <div className="part-badge">{activePart.partName}</div>
-                            <div style={{ fontSize: 12, fontWeight: "bold", color: "#FF9500", marginBottom: 4 }}>📋 現在の段の指示 ({currentProject.count}段目)</div>
-                            <div style={{ fontSize: 16, fontWeight: "bold", lineHeight: 1.4 }}>{currentInstruction}</div>
+                            <div style={{ fontSize: 12, fontWeight: "bold", color: "#FF9500", marginBottom: 4 }}>📋 現在の段の指示 ({currentInstruction.row}段目)</div>
+                            <div style={{ fontSize: 16, fontWeight: "bold", lineHeight: 1.4 }}>{currentInstruction.text}</div>
                         </div>
                     )}
 
