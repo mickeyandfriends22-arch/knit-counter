@@ -59,10 +59,11 @@
                         ...p, 
                         targetCount: p.targetCount || 0,
                         rawPatternText: p.rawPatternText || "",
-                        currentPartIndex: p.currentPartIndex || 0
+                        currentPartIndex: p.currentPartIndex || 0,
+                        memo: p.memo || "" // メモフィールドの初期化
                     }));
                 }
-                return [{ id: Date.now(), name: "作品1", count: 0, targetCount: 0, history: [], rules: [], rawPatternText: "", currentPartIndex: 0 }];
+                return [{ id: Date.now(), name: "作品1", count: 0, targetCount: 0, history: [], rules: [], rawPatternText: "", currentPartIndex: 0, memo: "" }];
             });
 
             const [selectedId, setSelectedId] = useState(() => Number(localStorage.getItem("selected-project")) || (projects[0]?.id));
@@ -73,6 +74,7 @@
             const [scheduleOpen, setScheduleOpen] = useState(false);
             const [sizeTableOpen, setSizeTableOpen] = useState(false);
             const [patternModalOpen, setPatternModalOpen] = useState(false);
+            const [memoModalOpen, setMemoModalOpen] = useState(false); // メモモーダルの開閉状態
             const [sizeTab, setSizeTab] = useState("crochet"); 
             const [editingRuleIndex, setEditingRuleIndex] = useState(null);
             const [darkMode, setDarkMode] = useState(() => {
@@ -83,15 +85,18 @@
             const lastClickTime = useRef(0);
             const lastDelta = useRef(null); 
             const lastAlertedCount = useRef(null);
-            const popupTimeoutRef = useRef(null); // 2~3秒待つタイマーを管理するRef
+            const popupTimeoutRef = useRef(null);
 
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
             
             const [patternInput, setPatternInput] = useState(currentProject.rawPatternText || "");
+            const [memoInput, setMemoInput] = useState(currentProject.memo || ""); // メモの入力状態管理
+
             useEffect(() => {
                 setPatternInput(currentProject.rawPatternText || "");
+                setMemoInput(currentProject.memo || "");
                 if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
-            }, [selectedId, currentProject.rawPatternText]);
+            }, [selectedId, currentProject.rawPatternText, currentProject.memo]);
 
             const [ruleStart, setRuleStart] = useState(0);
             const [ruleEvery, setRuleEvery] = useState(0);
@@ -117,7 +122,6 @@
                 return points.sort((a, b) => a.step - b.step);
             }, [currentProject.rules]);
 
-            // パターンテキスト解析
             const parsedParts = useMemo(() => {
                 const rawText = currentProject.rawPatternText || "";
                 const partBlocks = rawText.split(/\n\s*---\s*\n|\n\s*終わり\s*\n/i);
@@ -173,7 +177,6 @@
             const activePartIndex = Math.min(currentProject.currentPartIndex || 0, Math.max(0, parsedParts.length - 1));
             const activePart = parsedParts[activePartIndex];
 
-            // ★変更ポイント1：パターンの最大段数を「自動的に目標段数(targetCount)」として動的に差し替える
             const effectiveTargetCount = useMemo(() => {
                 if (activePart && activePart.maxRow > 0) {
                     return activePart.maxRow;
@@ -181,7 +184,6 @@
                 return currentProject.targetCount || 0;
             }, [activePart, currentProject.targetCount]);
 
-            // カウンター0で1段目を表示するコアロジック
             const currentInstruction = useMemo(() => {
                 if (!activePart) return null;
                 const { explicitMap, repeatStart, repeatEnd } = activePart;
@@ -200,7 +202,6 @@
                 return null;
             }, [activePart, currentProject.count]);
 
-            // プログレスバーの計算（自動取得した有効な最大段数をベースにする）
             const progressInfo = useMemo(() => {
                 if (!effectiveTargetCount || effectiveTargetCount === 0) return null;
                 const percent = Math.floor((currentProject.count / effectiveTargetCount) * 100);
@@ -262,17 +263,14 @@
 
                 let nextPartIdx = activePartIndex;
 
-                // 既存のタイマーがあれば一度リセット
                 if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
 
-                // ★変更ポイント2：目標を達成した状態で、2.5秒待ってから次のパーツへ行くか確認するポップアップを出す
                 if (delta > 0 && activePart && activePart.maxRow > 0 && newCount >= activePart.maxRow) {
                     if (activePartIndex < parsedParts.length - 1) {
-                        fireConfetti(); // 紙吹雪は爽快感を出すため即時実行
+                        fireConfetti();
                         
                         popupTimeoutRef.current = setTimeout(() => {
                             if (confirm(`🎉 ${activePart.partName} の全 ${activePart.maxRow} 段が編み終わりました！\n\n次のパーツに進みますか？`)) {
-                                // ユーザーがOKを押したら次のパーツの0段目(＝1段目の指示が表示される状態)へ移行
                                 updateProject({
                                     ...currentProject,
                                     count: 0,
@@ -280,9 +278,9 @@
                                     history: [{ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), action: "次へ", count: 0, isNegative: false }, ...(currentProject.history || [])].slice(0, 15)
                                 });
                             }
-                        }, 2500); // 2.5秒（2〜3秒の間）待つディレイを設定
+                        }, 2500);
                     } else if (activePartIndex === parsedParts.length - 1 && currentProject.count < activePart.maxRow) {
-                        fireConfetti(); // すべてのパーツが完全終了した時
+                        fireConfetti();
                     }
                 }
 
@@ -301,7 +299,6 @@
                 const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const newHistory = [{ time: timeStr, action: delta > 0 ? "+1" : "-1", count: newCount, isNegative: delta < 0 }, ...(currentProject.history || [])].slice(0, 15);
                 
-                // 通常のカウント更新（ポップアップを待っている間も数字は進んだ状態を維持）
                 updateProject({ 
                     ...currentProject, 
                     count: newCount, 
@@ -346,7 +343,9 @@
                                 <button key={p.id} onClick={() => setSelectedId(p.id)} style={{ border:"none", borderRadius:12, padding:"10px 18px", fontWeight:"bold", whiteSpace:"nowrap", background: p.id === selectedId ? theme.accent : theme.gray, color: p.id === selectedId ? "#FFF" : theme.text }}>{p.name}</button>
                             ))}
                         </div>
+                        {/* ⚙️ 右上ボタン配置エリア (指定通り📝の左に💭を配置) */}
                         <div style={{display:"flex", gap: 8}}>
+                            <button style={{background:theme.gray, border:"none", borderRadius:12, width:42, height:42, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18}} onClick={() => setMemoModalOpen(true)}>💭</button>
                             <button style={{background:theme.gray, border:"none", borderRadius:12, width:42, height:42, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18}} onClick={() => setPatternModalOpen(true)}>📝</button>
                             <button style={{background:theme.gray, border:"none", borderRadius:12, width:42, height:42, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18}} onClick={() => setSizeTableOpen(true)}>📊</button>
                             <button style={{background:theme.gray, border:"none", borderRadius:12, width:42, height:42, display:"flex", alignItems:"center", justifyContent:"center"}} onClick={() => setSettingsOpen(true)}><div style={{width:18, height:2, background:theme.text, boxShadow:`0 6px 0 ${theme.text}, 0 -6px 0 ${theme.text}`, borderRadius:2}}></div></button>
@@ -388,6 +387,14 @@
                         </div>
                     )}
 
+                    {/* クイックメモ表示（もしメモが入力されていたらメイン画面にもそっと表示して忘れ防止にする） */}
+                    {currentProject.memo && (
+                        <div style={{ background: theme.card, borderRadius: 16, padding: "12px 15px", marginBottom: 15, fontSize: 13, borderLeft: `4px solid ${theme.accent}`, opacity: 0.9 }} onClick={() => setMemoModalOpen(true)}>
+                            <span style={{ fontWeight: "bold", display: "block", fontSize: 11, opacity: 0.5, marginBottom: 2 }}>📝 この作品のメモ</span>
+                            <div style={{ whiteSpace: "pre-wrap" }}>{currentProject.memo}</div>
+                        </div>
+                    )}
+
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginTop: 15, marginBottom: 10}}>
                         <span style={{fontSize:13, fontWeight:"bold", opacity:0.5}}>ルール</span>
                         <button onClick={() => { setEditingRuleIndex(null); setRuleStart(currentProject.count); setRuleEvery(10); setRuleTimes(0); setRuleAction("模様編み"); setIsPatternMode(true); setRuleModalOpen(true); }} style={{background:"none", border:"none", color:theme.accent, fontWeight:"bold", fontSize:13}}>+ 追加</button>
@@ -415,6 +422,28 @@
                             </div>
                         ))}
                     </div>
+
+                    {/* 💭 作品メモモーダル（新規追加） */}
+                    {memoModalOpen && (
+                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setMemoModalOpen(false)}>
+                            <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+                                <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>💭 作品メモ ({currentProject.name})</h3>
+                                <p style={{ fontSize: 12, opacity: 0.6, marginTop: -5 }}>
+                                    サイズ、針の号数、ロット、編み方の注意点など自由に保存できます。
+                                </p>
+                                <textarea 
+                                    value={memoInput} 
+                                    onChange={e => setMemoInput(e.target.value)} 
+                                    placeholder="例：針は4.0mmを使用 / 毛糸ロット2A / 緩めに編むこと..." 
+                                    style={{ width: "100%", height: "180px", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 15, lineHeight: 1.5, resize: "none" }}
+                                />
+                                <div style={{ display: "flex", gap: 10, marginTop: 15 }}>
+                                    <button onClick={() => { setMemoInput(""); updateProject({ ...currentProject, memo: "" }); setMemoModalOpen(false); }} style={{ flex: 1, padding: 16, background: theme.danger + "15", color: theme.danger, border: "none", borderRadius: 15, fontWeight: "bold" }}>クリア</button>
+                                    <button onClick={() => { updateProject({ ...currentProject, memo: memoInput }); setMemoModalOpen(false); }} style={{ flex: 2, padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>メモを保存</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* 英文パターン登録モーダル */}
                     {patternModalOpen && (
@@ -526,9 +555,9 @@
                                         <input type="number" value={currentProject.targetCount || 0} onChange={e => updateProject({...currentProject, targetCount: Number(e.target.value)})} style={{width: "100%", padding:15, borderRadius:15, border:"none", background:theme.inputBg, color:theme.text, fontSize:18, textAlign:"center", fontWeight:"bold"}} />
                                     </div>
                                 </div>
-                                <button onClick={() => { const n = { id: Date.now(), name: "作品" + (projects.length + 1), count: 0, targetCount: 0, history: [], rules: [], rawPatternText: "", currentPartIndex: 0 }; setProjects([...projects, n]); setSelectedId(n.id); setSettingsOpen(false); }} style={{ width: "100%", padding: 16, borderRadius: 15, border: "none", background: theme.accent, color: "#FFF", marginBottom: 10, fontWeight: "bold" }}>＋ 新しい作品を追加</button>
+                                <button onClick={() => { const n = { id: Date.now(), name: "作品" + (projects.length + 1), count: 0, targetCount: 0, history: [], rules: [], rawPatternText: "", currentPartIndex: 0, memo: "" }; setProjects([...projects, n]); setSelectedId(n.id); setSettingsOpen(false); }} style={{ width: "100%", padding: 16, borderRadius: 15, border: "none", background: theme.accent, color: "#FFF", marginBottom: 10, fontWeight: "bold" }}>＋ 新しい作品を追加</button>
                                 <button onClick={() => { setDarkMode(!darkMode); setSettingsOpen(false); }} style={{ width: "100%", padding: 16, borderRadius: 15, border: "none", background: theme.gray, color: theme.text, marginBottom: 10, fontWeight: "bold" }}>モード切替: {darkMode ? "ライト" : "ダーク"}</button>
-                                <button onClick={() => { if(confirm("作品を削除しますか？")){ const next = projects.filter(p=>p.id!==selectedId); setProjects(next.length?next:[{id:Date.now(), name:"作品1", count:0, targetCount:0, rules:[], history:[], rawPatternText: "", currentPartIndex: 0}]); setSelectedId(next[0]?.id || Date.now()); setSettingsOpen(false); } }} style={{ width: "100%", padding: 16, border: "none", background: "#FF3B3015", color: theme.danger, borderRadius: 15, fontWeight: "bold" }}>作品を削除</button>
+                                <button onClick={() => { if(confirm("作品を削除しますか？")){ const next = projects.filter(p=>p.id!==selectedId); setProjects(next.length?next:[{id:Date.now(), name:"作品1", count:0, targetCount:0, rules:[], history:[], rawPatternText: "", currentPartIndex: 0, memo: "" }]); setSelectedId(next[0]?.id || Date.now()); setSettingsOpen(false); } }} style={{ width: "100%", padding: 16, border: "none", background: "#FF3B3015", color: theme.danger, borderRadius: 15, fontWeight: "bold" }}>作品を削除</button>
                                 <button onClick={() => setSettingsOpen(false)} style={{ width: "100%", padding: 16, border: "none", background: "none", color: theme.text, opacity:0.5 }}>閉じる</button>
                             </div>
                         </div>
