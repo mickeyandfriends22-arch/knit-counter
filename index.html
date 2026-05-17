@@ -138,7 +138,7 @@
             useEffect(() => {
                 setPatternInput(currentProject.rawPatternText || "");
                 setMemoInput(currentProject.memo || "");
-                setHistoryExpanded(false); // 作品が切り替わったら履歴は一度閉じる
+                setHistoryExpanded(false);
                 if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
             }, [selectedId, currentProject.rawPatternText, currentProject.memo]);
 
@@ -262,16 +262,6 @@
                 };
             }, [currentProject.count, effectiveTargetCount]);
 
-            const rulePreview = useMemo(() => {
-                if (ruleEvery <= 0) return "";
-                let previewSteps = [];
-                const maxPreview = ruleTimes === 0 ? 5 : Math.min(ruleTimes, 5);
-                for (let i = 0; i < maxPreview; i++) {
-                    previewSteps.push(`${ruleStart + (i * ruleEvery)}段`);
-                }
-                return previewSteps.join(", ") + (ruleTimes === 0 || ruleTimes > 5 ? "･･･" : "");
-            }, [ruleStart, ruleEvery, ruleTimes]);
-
             const fireConfetti = () => {
                 const count = 150;
                 const defaults = { origin: { y: 0.7 }, colors: ['#007AFF', '#34C759', '#FFD60A'] };
@@ -373,8 +363,8 @@
 
             const displayedHistory = useMemo(() => {
                 const historyList = currentProject.history || [];
-                if (historyExpanded) return historyList; // 全開時は15件
-                return historyList.slice(0, 5); // 通常時は5件
+                if (historyExpanded) return historyList; 
+                return historyList.slice(0, 5); 
             }, [currentProject.history, historyExpanded]);
 
             const statusDisplay = useMemo(() => {
@@ -469,7 +459,7 @@
                     <span style={{fontSize:13, fontWeight:"bold", opacity:0.5, marginTop:25, display:"block", marginBottom:10}}>履歴</span>
                     <div style={{background: theme.card, borderRadius: "20px", padding: "5px 18px", marginBottom: 20}}>
                         {displayedHistory.length === 0 ? (
-                            <div style={{ padding: "15px 0", textalign: "center", opacity: 0.3, fontSize: 13, textAlign: "center" }}>履歴がありません</div>
+                            <div style={{ padding: "15px 0", opacity: 0.3, fontSize: 13, textAlign: "center" }}>履歴がありません</div>
                         ) : (
                             displayedHistory.map((h, i, arr) => (
                                 <div key={i} className="history-item" style={{ borderBottom: (i === arr.length - 1 && !historyExpanded) ? "none" : `1px solid ${theme.gray}44` }}>
@@ -485,7 +475,7 @@
                         {(currentProject.history || []).length > 5 && (
                             <button 
                                 onClick={() => setHistoryExpanded(!historyExpanded)} 
-                                style={{ width: "100%", background: "none", border: "none", color: theme.accent, fontSize: 13, fontWeight: "bold", padding: "12px 0", cursor: pointer, borderTop: historyExpanded ? `1px solid ${theme.gray}44` : "none" }}
+                                style={{ width: "100%", background: "none", border: "none", color: theme.accent, fontSize: 13, fontWeight: "bold", padding: "12px 0", cursor: "pointer", borderTop: historyExpanded ? `1px solid ${theme.gray}44` : "none" }}
                             >
                                 {historyExpanded ? "履歴を折りたたむ (▲)" : `すべての履歴を表示 (+ ${(currentProject.history || []).length - 5}件)`}
                             </button>
