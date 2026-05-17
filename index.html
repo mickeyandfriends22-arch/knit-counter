@@ -109,6 +109,7 @@
             const [spellModalOpen, setSpellModalOpen] = useState(false); 
             const [sizeTab, setSizeTab] = useState("crochet"); 
             const [editingRuleIndex, setEditingRuleIndex] = useState(null);
+            const [historyExpanded, setHistoryExpanded] = useState(false);
             const [darkMode, setDarkMode] = useState(() => {
                 const saved = localStorage.getItem("dark-mode");
                 return saved === null ? window.matchMedia('(prefers-color-scheme: dark)').matches : saved === "true";
@@ -137,6 +138,7 @@
             useEffect(() => {
                 setPatternInput(currentProject.rawPatternText || "");
                 setMemoInput(currentProject.memo || "");
+                setHistoryExpanded(false); // 作品が切り替わったら履歴は一度閉じる
                 if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
             }, [selectedId, currentProject.rawPatternText, currentProject.memo]);
 
@@ -362,6 +364,19 @@
                 updateProject({ ...currentProject, count: newCount, history: [{ time: timeStr, action: delta > 0 ? "+1" : "-1", count: newCount, isNegative: delta < 0 }, ...(currentProject.history || [])].slice(0, 15) });
             };
 
+            const clearHistory = () => {
+                if (confirm("この作品のすべての履歴を削除しますか？\n（現在の段数はそのまま残ります）")) {
+                    updateProject({ ...currentProject, history: [] });
+                    setHistoryExpanded(false);
+                }
+            };
+
+            const displayedHistory = useMemo(() => {
+                const historyList = currentProject.history || [];
+                if (historyExpanded) return historyList; // 全開時は15件
+                return historyList.slice(0, 5); // 通常時は5件
+            }, [currentProject.history, historyExpanded]);
+
             const statusDisplay = useMemo(() => {
                 if (warning.message) return <div style={{ color: theme.danger, fontWeight: "bold" }}>⚠️ {warning.message}</div>;
                 const displayElements = [];
@@ -453,15 +468,39 @@
 
                     <span style={{fontSize:13, fontWeight:"bold", opacity:0.5, marginTop:25, display:"block", marginBottom:10}}>履歴</span>
                     <div style={{background: theme.card, borderRadius: "20px", padding: "5px 18px", marginBottom: 20}}>
-                        {(currentProject.history || []).map((h, i, arr) => (
-                            <div key={i} className="history-item" style={{ borderBottom: i === arr.length - 1 ? "none" : `1px solid ${theme.gray}44` }}>
-                                <div style={{display:"flex", alignItems:"center", gap: 10}}>
-                                    <span style={{opacity:0.5, fontSize:12}}>{h.time}</span>
-                                    <span style={{fontSize:11, background: h.isNegative ? theme.danger + "22" : theme.accent + "22", color: h.isNegative ? theme.danger : theme.accent, padding: "2px 6px", borderRadius: 6, fontWeight: "bold"}}>{h.action}</span>
+                        {displayedHistory.length === 0 ? (
+                            <div style={{ padding: "15px 0", textalign: "center", opacity: 0.3, fontSize: 13, textAlign: "center" }}>履歴がありません</div>
+                        ) : (
+                            displayedHistory.map((h, i, arr) => (
+                                <div key={i} className="history-item" style={{ borderBottom: (i === arr.length - 1 && !historyExpanded) ? "none" : `1px solid ${theme.gray}44` }}>
+                                    <div style={{display:"flex", alignItems:"center", gap: 10}}>
+                                        <span style={{opacity:0.5, fontSize:12}}>{h.time}</span>
+                                        <span style={{fontSize:11, background: h.isNegative ? theme.danger + "22" : theme.accent + "22", color: h.isNegative ? theme.danger : theme.accent, padding: "2px 6px", borderRadius: 6, fontWeight: "bold"}}>{h.action}</span>
+                                    </div>
+                                    <span style={{fontWeight:"900", fontSize: 18, color: h.isNegative ? theme.danger : theme.accent}}>{h.count}段</span>
                                 </div>
-                                <span style={{fontWeight:"900", fontSize: 18, color: h.isNegative ? theme.danger : theme.accent}}>{h.count}段</span>
+                            ))
+                        )}
+                        
+                        {(currentProject.history || []).length > 5 && (
+                            <button 
+                                onClick={() => setHistoryExpanded(!historyExpanded)} 
+                                style={{ width: "100%", background: "none", border: "none", color: theme.accent, fontSize: 13, fontWeight: "bold", padding: "12px 0", cursor: pointer, borderTop: historyExpanded ? `1px solid ${theme.gray}44` : "none" }}
+                            >
+                                {historyExpanded ? "履歴を折りたたむ (▲)" : `すべての履歴を表示 (+ ${(currentProject.history || []).length - 5}件)`}
+                            </button>
+                        )}
+
+                        {historyExpanded && (
+                            <div style={{ borderTop: `1px solid ${theme.gray}44`, padding: "10px 0 5px", display: "flex", justifyContent: "center" }}>
+                                <button 
+                                    onClick={clearHistory}
+                                    style={{ background: "none", border: "none", color: theme.danger, fontSize: 12, fontWeight: "bold", padding: "8px 15px", borderRadius: 8 }}
+                                >
+                                    🗑️ この作品の履歴をすべて削除
+                                </button>
                             </div>
-                        ))}
+                        )}
                     </div>
 
                     {mainMenuOpen && (
