@@ -44,6 +44,22 @@
 
         .part-badge { background: #34C75922; color: #34C759; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
         .part-nav-btn { background: none; border: none; color: #007AFF; font-size: 12px; font-weight: bold; cursor: pointer; padding: 5px; }
+
+        /* メモ帳用の自動伸縮・スクロールCSS */
+        .auto-grow-textarea {
+            width: 100%;
+            min-height: 140px;
+            max-height: 40vh; /* 画面全体の40%を超えたら内部スクロールに切り替え */
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            line-height: 1.5;
+            resize: none;
+            overflow-y: auto; /* 溢れたらスクロール */
+            -webkit-user-select: text;
+            user-select: text;
+        }
     </style></head><body>
     <div id="root"></div>
     <script type="text/babel">
@@ -60,7 +76,7 @@
                         targetCount: p.targetCount || 0,
                         rawPatternText: p.rawPatternText || "",
                         currentPartIndex: p.currentPartIndex || 0,
-                        memo: p.memo || "" // メモフィールドの初期化
+                        memo: p.memo || ""
                     }));
                 }
                 return [{ id: Date.now(), name: "作品1", count: 0, targetCount: 0, history: [], rules: [], rawPatternText: "", currentPartIndex: 0, memo: "" }];
@@ -74,7 +90,7 @@
             const [scheduleOpen, setScheduleOpen] = useState(false);
             const [sizeTableOpen, setSizeTableOpen] = useState(false);
             const [patternModalOpen, setPatternModalOpen] = useState(false);
-            const [memoModalOpen, setMemoModalOpen] = useState(false); // メモモーダルの開閉状態
+            const [memoModalOpen, setMemoModalOpen] = useState(false); 
             const [sizeTab, setSizeTab] = useState("crochet"); 
             const [editingRuleIndex, setEditingRuleIndex] = useState(null);
             const [darkMode, setDarkMode] = useState(() => {
@@ -86,17 +102,34 @@
             const lastDelta = useRef(null); 
             const lastAlertedCount = useRef(null);
             const popupTimeoutRef = useRef(null);
+            const textareaRef = useRef(null); // メモの高さ自動調整用の参照
 
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
             
             const [patternInput, setPatternInput] = useState(currentProject.rawPatternText || "");
-            const [memoInput, setMemoInput] = useState(currentProject.memo || ""); // メモの入力状態管理
+            const [memoInput, setMemoInput] = useState(currentProject.memo || ""); 
+
+            // メモ入力時の高さを自動調整する関数
+            const adjustTextareaHeight = () => {
+                const textarea = textareaRef.current;
+                if (textarea) {
+                    textarea.style.height = "auto";
+                    textarea.style.height = `${textarea.scrollHeight}px`;
+                }
+            };
 
             useEffect(() => {
                 setPatternInput(currentProject.rawPatternText || "");
                 setMemoInput(currentProject.memo || "");
                 if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
             }, [selectedId, currentProject.rawPatternText, currentProject.memo]);
+
+            // メモのモーダルが開いたとき、または文字が打ち込まれたときに高さを再計算
+            useEffect(() => {
+                if (memoModalOpen) {
+                    setTimeout(adjustTextareaHeight, 50);
+                }
+            }, [memoModalOpen, memoInput]);
 
             const [ruleStart, setRuleStart] = useState(0);
             const [ruleEvery, setRuleEvery] = useState(0);
@@ -343,7 +376,6 @@
                                 <button key={p.id} onClick={() => setSelectedId(p.id)} style={{ border:"none", borderRadius:12, padding:"10px 18px", fontWeight:"bold", whiteSpace:"nowrap", background: p.id === selectedId ? theme.accent : theme.gray, color: p.id === selectedId ? "#FFF" : theme.text }}>{p.name}</button>
                             ))}
                         </div>
-                        {/* ⚙️ 右上ボタン配置エリア (指定通り📝の左に💭を配置) */}
                         <div style={{display:"flex", gap: 8}}>
                             <button style={{background:theme.gray, border:"none", borderRadius:12, width:42, height:42, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18}} onClick={() => setMemoModalOpen(true)}>💭</button>
                             <button style={{background:theme.gray, border:"none", borderRadius:12, width:42, height:42, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18}} onClick={() => setPatternModalOpen(true)}>📝</button>
@@ -353,7 +385,6 @@
                     </div>
 
                     <div style={{ borderRadius: "40px", padding: "25px 20px", textAlign: "center", background: theme.card, boxShadow: "0 10px 30px rgba(0,0,0,0.1)", marginBottom: 20 }}>
-                        
                         {parsedParts.length > 1 && activePart && (
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 10px" }}>
                                 <button className="part-nav-btn" disabled={activePartIndex === 0} style={{ opacity: activePartIndex === 0 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex - 1, count: 0 })}>◀ 前のパーツ</button>
@@ -361,24 +392,20 @@
                                 <button className="part-nav-btn" disabled={activePartIndex === parsedParts.length - 1} style={{ opacity: activePartIndex === parsedParts.length - 1 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex + 1, count: 0 })}>次へ ▶</button>
                             </div>
                         )}
-
                         <div style={{minHeight: 40, display:"flex", justifyContent:"center", alignItems:"center"}}>{statusDisplay}</div>
                         <div style={{ fontSize: "120px", fontWeight: "900", lineHeight: 1, margin: "10px 0" }}>{currentProject.count}</div>
-                        
                         {progressInfo && (
                             <div className="progress-container">
                                 <div className="progress-bar" style={{ width: `${progressInfo.percent}%`, background: progressInfo.rawPercent >= 100 ? "#34C759" : theme.accent }}></div>
                                 <div className="progress-label" style={{ color: progressInfo.percent > 50 ? "#FFF" : theme.text }}>{progressInfo.text}</div>
                             </div>
                         )}
-
                         <div style={{ display: "flex", gap: "15px", marginTop: "10px" }}>
                             <button className="btn-active" onClick={() => handleCountChange(-1)} style={{ width: "80px", height: "85px", borderRadius: "25px", border: "none", fontSize: "32px", background: theme.gray, color: theme.text }}>−</button>
                             <button className="btn-active" onClick={() => handleCountChange(1)} style={{ flex: 1, height: "85px", borderRadius: "25px", border: "none", fontSize: "40px", background: theme.accent, color: "white", fontWeight: "bold" }}>＋</button>
                         </div>
                     </div>
 
-                    {/* パターン指示表示エリア */}
                     {currentInstruction && activePart && (
                         <div className="pattern-instruction-box">
                             <div className="part-badge">{activePart.partName}</div>
@@ -387,11 +414,10 @@
                         </div>
                     )}
 
-                    {/* クイックメモ表示（もしメモが入力されていたらメイン画面にもそっと表示して忘れ防止にする） */}
                     {currentProject.memo && (
                         <div style={{ background: theme.card, borderRadius: 16, padding: "12px 15px", marginBottom: 15, fontSize: 13, borderLeft: `4px solid ${theme.accent}`, opacity: 0.9 }} onClick={() => setMemoModalOpen(true)}>
                             <span style={{ fontWeight: "bold", display: "block", fontSize: 11, opacity: 0.5, marginBottom: 2 }}>📝 この作品のメモ</span>
-                            <div style={{ whiteSpace: "pre-wrap" }}>{currentProject.memo}</div>
+                            <div style={{ whiteSpace: "pre-wrap", maxHeight: "100px", overflowY: "auto" }}>{currentProject.memo}</div>
                         </div>
                     )}
 
@@ -423,21 +449,28 @@
                         ))}
                     </div>
 
-                    {/* 💭 作品メモモーダル（新規追加） */}
+                    {/* 💭 作品メモモーダル（自動伸縮＆内部スクロール化） */}
                     {memoModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setMemoModalOpen(false)}>
-                            <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-                                <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>💭 作品メモ ({currentProject.name})</h3>
-                                <p style={{ fontSize: 12, opacity: 0.6, marginTop: -5 }}>
+                            <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "85vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
+                                <h3 style={{ marginTop: 0, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>💭 作品メモ ({currentProject.name})</h3>
+                                <p style={{ fontSize: 12, opacity: 0.6, marginTop: 0, marginBottom: 15 }}>
                                     サイズ、針の号数、ロット、編み方の注意点など自由に保存できます。
                                 </p>
-                                <textarea 
-                                    value={memoInput} 
-                                    onChange={e => setMemoInput(e.target.value)} 
-                                    placeholder="例：針は4.0mmを使用 / 毛糸ロット2A / 緩めに編むこと..." 
-                                    style={{ width: "100%", height: "180px", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 15, lineHeight: 1.5, resize: "none" }}
-                                />
-                                <div style={{ display: "flex", gap: 10, marginTop: 15 }}>
+                                
+                                {/* 伸縮コンテナ。文字が増えると最大40vhまで下に自律して伸びます */}
+                                <div style={{ width: "100%", overflow: "visible" }}>
+                                    <textarea 
+                                        ref={textareaRef}
+                                        value={memoInput} 
+                                        onChange={e => setMemoInput(e.target.value)} 
+                                        placeholder="例：針は4.0mmを使用 / 毛糸ロット2A / 緩めに編むこと..." 
+                                        className="auto-grow-textarea"
+                                        style={{ background: theme.inputBg, color: theme.text }}
+                                    />
+                                </div>
+
+                                <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                                     <button onClick={() => { setMemoInput(""); updateProject({ ...currentProject, memo: "" }); setMemoModalOpen(false); }} style={{ flex: 1, padding: 16, background: theme.danger + "15", color: theme.danger, border: "none", borderRadius: 15, fontWeight: "bold" }}>クリア</button>
                                     <button onClick={() => { updateProject({ ...currentProject, memo: memoInput }); setMemoModalOpen(false); }} style={{ flex: 2, padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>メモを保存</button>
                                 </div>
