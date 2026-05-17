@@ -101,7 +101,7 @@
             const [activeAlert, setActiveAlert] = useState(null);
             const [warning, setWarning] = useState({ message: null, type: null });
             const [ruleModalOpen, setRuleModalOpen] = useState(false);
-            const [mainMenuOpen, setMainMenuOpen] = useState(false); // メインメニューまとめ用
+            const [mainMenuOpen, setMainMenuOpen] = useState(false);
             const [scheduleOpen, setScheduleOpen] = useState(false);
             const [sizeTableOpen, setSizeTableOpen] = useState(false);
             const [patternModalOpen, setPatternModalOpen] = useState(false);
@@ -285,7 +285,6 @@
                 setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
             }
 
-            // 【プロジェクト単体】の復活の呪文（Base64）を作成する関数
             const generateSingleSpell = () => {
                 try {
                     const jsonString = JSON.stringify(currentProject);
@@ -295,7 +294,6 @@
                 }
             };
 
-            // 復活の呪文を読み込み、既存データを消さずに「追加」する関数
             const applySingleSpell = (spell) => {
                 if (!spell.trim()) return;
                 try {
@@ -303,7 +301,6 @@
                     const parsedProject = JSON.parse(decodedJson);
                     
                     if (parsedProject && parsedProject.name && typeof parsedProject.count === 'number') {
-                        // 重複を避けるためにIDを新しく採番
                         const newProject = {
                             ...parsedProject,
                             id: Date.now(),
@@ -425,7 +422,6 @@
                 <div style={{ minHeight: "100vh", padding: "calc(env(safe-area-inset-top) + 15px) 20px 60px", background: theme.bg, color: theme.text }}>
                     <div className="bg-illust">🧶</div>
                     
-                    {/* UI改善：ボタンを1つのメニューに統合し、タブ領域を最大化 */}
                     <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, gap: 12}}>
                         <div style={{display:"flex", gap:8, overflowX:"auto", flex: 1, paddingBottom: 5, scrollbarWidth: "none"}}>
                             {projects.map(p => (
@@ -439,7 +435,7 @@
 
                     <div style={{ borderRadius: "40px", padding: "25px 20px", textAlign: "center", background: theme.card, boxShadow: "0 10px 30px rgba(0,0,0,0.1)", marginBottom: 20 }}>
                         {parsedParts.length > 1 && activePart && (
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 10px" }}>
+                            <div style={{ display: "flex", justifycontent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 10px" }}>
                                 <button className="part-nav-btn" disabled={activePartIndex === 0} style={{ opacity: activePartIndex === 0 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex - 1, count: 0 })}>◀ 前のパーツ</button>
                                 <span style={{ fontSize: 12, fontWeight: "bold", opacity: 0.7 }}>{activePart.partName} ({activePartIndex + 1} / {parsedParts.length})</span>
                                 <button className="part-nav-btn" disabled={activePartIndex === parsedParts.length - 1} style={{ opacity: activePartIndex === parsedParts.length - 1 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex + 1, count: 0 })}>次へ ▶</button>
@@ -495,7 +491,6 @@
                         ))}
                     </div>
 
-                    {/* 📱 統合メインメニューモーダル */}
                     {mainMenuOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setMainMenuOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
@@ -532,7 +527,6 @@
                         </div>
                     )}
 
-                    {/* 💭 作品メモモーダル */}
                     {memoModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setMemoModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "85vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
@@ -555,7 +549,6 @@
                         </div>
                     )}
 
-                    {/* 📝 英文パターン登録モーダル */}
                     {patternModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setPatternModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
@@ -574,7 +567,6 @@
                         </div>
                     )}
 
-                    {/* 🛠️ ルール設定モーダル */}
                     {ruleModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setRuleModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card }} onClick={e => e.stopPropagation()}>
@@ -606,7 +598,6 @@
                         </div>
                     )}
 
-                    {/* 📊 サイズ表モーダル */}
                     {sizeTableOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setSizeTableOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
@@ -643,12 +634,11 @@
                         </div>
                     )}
 
-                    {/* 🔮 プロジェクト単位の復活の呪文モーダル */}
                     {spellModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1100, backdropFilter: "blur(4px)" }} onClick={() => setSpellModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
                                 <h3 style={{ marginTop: 0, marginBottom: 5 }}>🔮 復活の呪文（作品ごと）</h3>
-                                <p style={{ fontSize: 12, opacity: 0.6, marginTop: 0, marginBottom: 15, line& height: 1.4 }}>
+                                <p style={{ fontSize: 12, opacity: 0.6, marginTop: 0, marginBottom: 15, lineHieght: "1.4" }}>
                                     選択中の「<b>{currentProject.name}</b>」のデータだけを呪文にします。別の端末で唱えると、既存のデータを消さずに、新しい作品としてリストに追加されます！
                                 </p>
                                 
@@ -681,7 +671,6 @@
                         </div>
                     )}
 
-                    {/* 📅 今後の予定モーダル */}
                     {scheduleOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setScheduleOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "70vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
