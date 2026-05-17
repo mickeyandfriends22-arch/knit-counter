@@ -568,11 +568,47 @@
                                 </div>
                                 <table className="size-table">
                                     <thead><tr><th>号数</th><th>mm</th></tr></thead>
-                                    <tbody>{sizeTab === "crochet" ? (
-                                        <tr><td>2/0号</td><td>2.0mm</td></tr>
-                                    ) : (
-                                        <tr><td>0号</td><td>2.1mm</td></tr>
-                                    )}</tbody>
+                                    <tbody>
+                                        {sizeTab === "crochet" ? (
+                                            React.Children.toArray([
+                                                <tr><td>2/0号</td><td>2.0mm</td></tr>,
+                                                <tr><td>3/0号</td><td>2.3mm</td></tr>,
+                                                <tr><td>4/0号</td><td>2.5mm</td></tr>,
+                                                <tr><td>5/0号</td><td>3.0mm</td></tr>,
+                                                <tr><td>6/0号</td><td>3.5mm</td></tr>,
+                                                <tr><td>7/0号</td><td>4.0mm</td></tr>,
+                                                <tr><td>7.5/0号</td><td>4.5mm</td></tr>,
+                                                <tr><td>8/0号</td><td>5.0mm</td></tr>,
+                                                <tr><td>9/0号</td><td>5.5mm</td></tr>,
+                                                <tr><td>10/0号</td><td>6.0mm</td></tr>,
+                                                <tr><td>ジャンボ 7mm</td><td>7.0mm</td></tr>,
+                                                <tr><td>ジャンボ 8mm</td><td>8.0mm</td></tr>,
+                                                <tr><td>ジャンボ 10mm</td><td>10.0mm</td></tr>
+                                            ])
+                                        ) : (
+                                            React.Children.toArray([
+                                                <tr><td>0号</td><td>2.1mm</td></tr>,
+                                                <tr><td>1号</td><td>2.4mm</td></tr>,
+                                                <tr><td>2号</td><td>2.7mm</td></tr>,
+                                                <tr><td>3号</td><td>3.0mm</td></tr>,
+                                                <tr><td>4号</td><td>3.3mm</td></tr>,
+                                                <tr><td>5号</td><td>3.6mm</td></tr>,
+                                                <tr><td>6号</td><td>3.9mm</td></tr>,
+                                                <tr><td>7号</td><td>4.2mm</td></tr>,
+                                                <tr><td>8号</td><td>4.5mm</td></tr>,
+                                                <tr><td>9号</td><td>4.8mm</td></tr>,
+                                                <tr><td>10号</td><td>5.1mm</td></tr>,
+                                                <tr><td>11号</td><td>5.4mm</td></tr>,
+                                                <tr><td>12号</td><td>5.7mm</td></tr>,
+                                                <tr><td>13号</td><td>6.0mm</td></tr>,
+                                                <tr><td>14号</td><td>6.3mm</td></tr>,
+                                                <tr><td>15号</td><td>6.6mm</td></tr>,
+                                                <tr><td>ジャンボ 7mm</td><td>7.0mm</td></tr>,
+                                                <tr><td>ジャンボ 8mm</td><td>8.0mm</td></tr>,
+                                                <tr><td>ジャンボ 10mm</td><td>10.0mm</td></tr>
+                                            ])
+                                        )}
+                                    </tbody>
                                 </table>
                                 <button onClick={() => setSizeTableOpen(false)} style={{ width: "100%", padding: 16, background: theme.accent, color: "white", borderRadius: 15, fontWeight: "bold", marginTop: 20 }}>閉じる</button>
                             </div>
@@ -596,7 +632,7 @@
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "70vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
                                 <h3 style={{ textAlign: "center" }}>予定</h3>
                                 {allMilestones.filter(m => m.step > currentProject.count && !m.isPattern).slice(0, 10).map((m, i) => (
-                                    <div key={i} style={{ display: "flex", justifyContent:"space-between", padding: "15px", borderRadius: 15, marginBottom: 8, background: i === 0 ? theme.accent : theme.inputBg, color: i === 0 ? "#FFF" : theme.text }}>
+                                    <div key={i} style={{ display: "flex", justifycontent: "space-between", padding: "15px", borderRadius: 15, marginBottom: 8, background: i === 0 ? theme.accent : theme.inputBg, color: i === 0 ? "#FFF" : theme.text }}>
                                         <span>{m.step}段目</span><span>{m.action}</span>
                                     </div>
                                 ))}
