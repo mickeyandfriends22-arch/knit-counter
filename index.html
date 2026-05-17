@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/dist/confetti.browser.min.js"></script>
     <style>
         body { margin: 0; background-color: #F2F2F7; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; overflow-x: hidden; }
         * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
@@ -56,7 +56,7 @@
             font-size: 15px;
             line-height: 1.5;
             resize: none;
-            overflow-y: auto; /* 溢れたらスクロール */
+            overflow-y: auto;
             -webkit-user-select: text;
             user-select: text;
         }
@@ -102,14 +102,13 @@
             const lastDelta = useRef(null); 
             const lastAlertedCount = useRef(null);
             const popupTimeoutRef = useRef(null);
-            const textareaRef = useRef(null); // メモの高さ自動調整用の参照
+            const textareaRef = useRef(null);
 
             const currentProject = useMemo(() => projects.find(p => p.id === selectedId) || projects[0], [projects, selectedId]);
             
             const [patternInput, setPatternInput] = useState(currentProject.rawPatternText || "");
             const [memoInput, setMemoInput] = useState(currentProject.memo || ""); 
 
-            // メモ入力時の高さを自動調整する関数
             const adjustTextareaHeight = () => {
                 const textarea = textareaRef.current;
                 if (textarea) {
@@ -124,7 +123,6 @@
                 if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
             }, [selectedId, currentProject.rawPatternText, currentProject.memo]);
 
-            // メモのモーダルが開いたとき、または文字が打ち込まれたときに高さを再計算
             useEffect(() => {
                 if (memoModalOpen) {
                     setTimeout(adjustTextareaHeight, 50);
@@ -414,12 +412,7 @@
                         </div>
                     )}
 
-                    {currentProject.memo && (
-                        <div style={{ background: theme.card, borderRadius: 16, padding: "12px 15px", marginBottom: 15, fontSize: 13, borderLeft: `4px solid ${theme.accent}`, opacity: 0.9 }} onClick={() => setMemoModalOpen(true)}>
-                            <span style={{ fontWeight: "bold", display: "block", fontSize: 11, opacity: 0.5, marginBottom: 2 }}>📝 この作品のメモ</span>
-                            <div style={{ whiteSpace: "pre-wrap", maxHeight: "100px", overflowY: "auto" }}>{currentProject.memo}</div>
-                        </div>
-                    )}
+                    {/* トップページのメモ表示（ご指定通り削除しました） */}
 
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginTop: 15, marginBottom: 10}}>
                         <span style={{fontSize:13, fontWeight:"bold", opacity:0.5}}>ルール</span>
@@ -449,7 +442,7 @@
                         ))}
                     </div>
 
-                    {/* 💭 作品メモモーダル（自動伸縮＆内部スクロール化） */}
+                    {/* 💭 作品メモモーダル */}
                     {memoModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setMemoModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "85vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
@@ -458,7 +451,6 @@
                                     サイズ、針の号数、ロット、編み方の注意点など自由に保存できます。
                                 </p>
                                 
-                                {/* 伸縮コンテナ。文字が増えると最大40vhまで下に自律して伸びます */}
                                 <div style={{ width: "100%", overflow: "visible" }}>
                                     <textarea 
                                         ref={textareaRef}
