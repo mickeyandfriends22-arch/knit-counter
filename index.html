@@ -64,13 +64,13 @@
             background: #F2F2F7;
             border: none;
             border-radius: 14px;
-            padding: 15px;
-            font-size: 15px;
+            padding: 12px;
+            font-size: 14px;
             font-weight: bold;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             cursor: pointer;
         }
         @media (prefers-color-scheme: dark) { .menu-grid-btn { background: #2C2C2E; } }
@@ -101,7 +101,7 @@
             const [activeAlert, setActiveAlert] = useState(null);
             const [warning, setWarning] = useState({ message: null, type: null });
             const [ruleModalOpen, setRuleModalOpen] = useState(false);
-            const [mainMenuOpen, setMainMenuOpen] = useState(false);
+            const [mainMenuOpen, setMainMenuOpen] = useState(false); 
             const [scheduleOpen, setScheduleOpen] = useState(false);
             const [sizeTableOpen, setSizeTableOpen] = useState(false);
             const [patternModalOpen, setPatternModalOpen] = useState(false);
@@ -299,26 +299,16 @@
                 try {
                     const decodedJson = decodeURIComponent(escape(atob(spell.trim())));
                     const parsedProject = JSON.parse(decodedJson);
-                    
                     if (parsedProject && parsedProject.name && typeof parsedProject.count === 'number') {
-                        const newProject = {
-                            ...parsedProject,
-                            id: Date.now(),
-                            name: parsedProject.name + " (復元)"
-                        };
-                        
+                        const newProject = { ...parsedProject, id: Date.now(), name: parsedProject.name + " (復元)" };
                         setProjects(prev => [...prev, newProject]);
                         setSelectedId(newProject.id);
-                        alert(`🔮 復活の呪文に成功しました！\n「${newProject.name}」が新しく作品リストに追加されました。`);
+                        alert(`🔮 復活の呪文に成功しました！\n「${newProject.name}」が追加されました。`);
                         setSpellInput("");
                         setSpellModalOpen(false);
                         setMainMenuOpen(false);
-                    } else {
-                        alert("❌ 呪文が正しくありません。選択中作品の呪文コードか確認してください。");
-                    }
-                } catch (e) {
-                    alert("❌ 呪文の詠唱に失敗しました。文字が欠けていないか確認してください。");
-                }
+                    } else { alert("❌ 呪文が正しくありません。"); }
+                } catch (e) { alert("❌ 呪文の詠唱に失敗しました。"); }
             };
 
             const theme = {
@@ -345,32 +335,20 @@
                 let newCount = currentProject.count + delta;
                 if (newCount < 0) return;
 
-                let nextPartIdx = activePartIndex;
-
                 if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
 
                 if (delta > 0 && activePart && activePart.maxRow > 0 && newCount >= activePart.maxRow) {
                     if (activePartIndex < parsedParts.length - 1) {
                         fireConfetti();
-                        
                         popupTimeoutRef.current = setTimeout(() => {
-                            if (confirm(`🎉 ${activePart.partName} の全 ${activePart.maxRow} 段が編み終わりました！\n\n次のパーツに進みますか？`)) {
-                                updateProject({
-                                    ...currentProject,
-                                    count: 0,
-                                    currentPartIndex: activePartIndex + 1,
-                                    history: [{ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), action: "次へ", count: 0, isNegative: false }, ...(currentProject.history || [])].slice(0, 15)
-                                });
+                            if (confirm(`🎉 ${activePart.partName} 終了！\n次のパーツに進みますか？`)) {
+                                updateProject({ ...currentProject, count: 0, currentPartIndex: activePartIndex + 1, history: [{ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), action: "次へ", count: 0, isNegative: false }, ...(currentProject.history || [])].slice(0, 15) });
                             }
                         }, 2500);
-                    } else if (activePartIndex === parsedParts.length - 1 && currentProject.count < activePart.maxRow) {
-                        fireConfetti();
-                    }
+                    } else if (activePartIndex === parsedParts.length - 1 && currentProject.count < activePart.maxRow) { fireConfetti(); }
                 }
 
-                if (delta > 0 && currentProject.targetCount > 0 && activePart && activePart.maxRow === 0 && newCount >= currentProject.targetCount && currentProject.count < currentProject.targetCount) {
-                    fireConfetti();
-                }
+                if (delta > 0 && currentProject.targetCount > 0 && activePart && activePart.maxRow === 0 && newCount >= currentProject.targetCount && currentProject.count < currentProject.targetCount) { fireConfetti(); }
 
                 if ("vibrate" in navigator) navigator.vibrate(15);
                 if (delta > 0) {
@@ -379,16 +357,9 @@
                         setActiveAlert(hit.action);
                         lastAlertedCount.current = newCount;
                     }
-                } else { lastAlertedCount.current = null; }
+                }
                 const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const newHistory = [{ time: timeStr, action: delta > 0 ? "+1" : "-1", count: newCount, isNegative: delta < 0 }, ...(currentProject.history || [])].slice(0, 15);
-                
-                updateProject({ 
-                    ...currentProject, 
-                    count: newCount, 
-                    history: newHistory,
-                    currentPartIndex: nextPartIdx
-                });
+                updateProject({ ...currentProject, count: newCount, history: [{ time: timeStr, action: delta > 0 ? "+1" : "-1", count: newCount, isNegative: delta < 0 }, ...(currentProject.history || [])].slice(0, 15) });
             };
 
             const statusDisplay = useMemo(() => {
@@ -422,23 +393,25 @@
                 <div style={{ minHeight: "100vh", padding: "calc(env(safe-area-inset-top) + 15px) 20px 60px", background: theme.bg, color: theme.text }}>
                     <div className="bg-illust">🧶</div>
                     
-                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, gap: 12}}>
+                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, gap: 10}}>
                         <div style={{display:"flex", gap:8, overflowX:"auto", flex: 1, paddingBottom: 5, scrollbarWidth: "none"}}>
                             {projects.map(p => (
                                 <button key={p.id} onClick={() => setSelectedId(p.id)} style={{ border:"none", borderRadius:12, padding:"10px 18px", fontWeight:"bold", whiteSpace:"nowrap", background: p.id === selectedId ? theme.accent : theme.gray, color: p.id === selectedId ? "#FFF" : theme.text }}>{p.name}</button>
                             ))}
                         </div>
-                        <button style={{background:theme.gray, border:"none", borderRadius:12, width:44, height:44, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0}} onClick={() => setMainMenuOpen(true)}>
-                            メニュー ▾
-                        </button>
+                        <div style={{display:"flex", gap: 6, flexShrink: 0}}>
+                            <button style={{background:theme.gray, border:"none", borderRadius:12, width:42, height:42, fontSize:18}} onClick={() => setMemoModalOpen(true)}>💭</button>
+                            <button style={{background:theme.gray, border:"none", borderRadius:12, width:42, height:42, fontSize:18}} onClick={() => setSizeTableOpen(true)}>📊</button>
+                            <button style={{background:theme.gray, border:"none", borderRadius:12, width:42, height:42, fontSize:16, fontWeight:"bold"}} onClick={() => setMainMenuOpen(true)}>≡</button>
+                        </div>
                     </div>
 
                     <div style={{ borderRadius: "40px", padding: "25px 20px", textAlign: "center", background: theme.card, boxShadow: "0 10px 30px rgba(0,0,0,0.1)", marginBottom: 20 }}>
                         {parsedParts.length > 1 && activePart && (
-                            <div style={{ display: "flex", justifycontent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 10px" }}>
-                                <button className="part-nav-btn" disabled={activePartIndex === 0} style={{ opacity: activePartIndex === 0 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex - 1, count: 0 })}>◀ 前のパーツ</button>
-                                <span style={{ fontSize: 12, fontWeight: "bold", opacity: 0.7 }}>{activePart.partName} ({activePartIndex + 1} / {parsedParts.length})</span>
-                                <button className="part-nav-btn" disabled={activePartIndex === parsedParts.length - 1} style={{ opacity: activePartIndex === parsedParts.length - 1 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex + 1, count: 0 })}>次へ ▶</button>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 10px" }}>
+                                <button className="part-nav-btn" disabled={activePartIndex === 0} style={{ opacity: activePartIndex === 0 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex - 1, count: 0 })}>◀ 前</button>
+                                <span style={{ fontSize: 12, fontWeight: "bold", opacity: 0.7 }}>{activePart.partName} ({activePartIndex + 1}/{parsedParts.length})</span>
+                                <button className="part-nav-btn" disabled={activePartIndex === parsedParts.length - 1} style={{ opacity: activePartIndex === parsedParts.length - 1 ? 0.3 : 1 }} onClick={() => updateProject({ ...currentProject, currentPartIndex: activePartIndex + 1, count: 0 })}>次 ▶</button>
                             </div>
                         )}
                         <div style={{minHeight: 40, display:"flex", justifyContent:"center", alignItems:"center"}}>{statusDisplay}</div>
@@ -458,7 +431,7 @@
                     {currentInstruction && activePart && (
                         <div className="pattern-instruction-box">
                             <div className="part-badge">{activePart.partName}</div>
-                            <div style={{ fontSize: 12, fontWeight: "bold", color: "#FF9500", marginBottom: 4 }}>📋 現在の段の指示 ({currentInstruction.row}段目)</div>
+                            <div style={{ fontSize: 12, fontWeight: "bold", color: "#FF9500", marginBottom: 4 }}>📋 指示 ({currentInstruction.row}段目)</div>
                             <div style={{ fontSize: 16, fontWeight: "bold", lineHeight: 1.4 }}>{currentInstruction.text}</div>
                         </div>
                     )}
@@ -471,14 +444,14 @@
                     {(currentProject.rules || []).map((r, i) => (
                         <div key={i} onClick={() => { setEditingRuleIndex(i); setRuleStart(r.start); setRuleEvery(r.every); setRuleTimes(r.times); setRuleAction(r.action); setIsPatternMode(!!r.isPattern); setRuleModalOpen(true); }} className="rule-card" style={{ padding: "16px 18px", background: r.isPattern ? theme.rulePatternBg : theme.ruleNormalBg, borderRadius: "16px", marginBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <div style={{display:"flex", flexDirection:"column"}}>
-                                <span style={{fontSize:15, fontWeight:"bold", color: r.isPattern ? theme.accent : theme.text}}>{r.action} {r.isPattern && " (編み込み)"}</span>
-                                <span style={{fontSize:12, opacity:0.6, color: r.isPattern ? theme.accent : theme.text}}>{r.start}段〜 {r.every}段毎 ({r.times === 0 ? "ずっと" : r.times + "回"})</span>
+                                <span style={{fontSize:15, fontWeight:"bold", color: r.isPattern ? theme.accent : theme.text}}>{r.action}</span>
+                                <span style={{fontSize:12, opacity:0.6}}>{r.start}段〜 {r.every}段毎</span>
                             </div>
-                            <span style={{fontSize:18, opacity:0.3, color: r.isPattern ? theme.accent : theme.text}}>›</span>
+                            <span style={{fontSize:18, opacity:0.3}}>›</span>
                         </div>
                     ))}
 
-                    <span style={{fontSize:13, fontWeight:"bold", opacity:0.5, marginTop:25, display:"block", marginBottom:10}}>履歴 (最新15件)</span>
+                    <span style={{fontSize:13, fontWeight:"bold", opacity:0.5, marginTop:25, display:"block", marginBottom:10}}>履歴</span>
                     <div style={{background: theme.card, borderRadius: "20px", padding: "5px 18px", marginBottom: 20}}>
                         {(currentProject.history || []).map((h, i, arr) => (
                             <div key={i} className="history-item" style={{ borderBottom: i === arr.length - 1 ? "none" : `1px solid ${theme.gray}44` }}>
@@ -495,32 +468,19 @@
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setMainMenuOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
                                 <h3 style={{ marginTop: 0, marginBottom: 20, textAlign:"center" }}>メニュー</h3>
-                                
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 25 }}>
-                                    <button className="menu-grid-btn" onClick={() => { setMainMenuOpen(false); setMemoModalOpen(true); }}><span style={{fontSize:24}}>💭</span>作品メモ</button>
-                                    <button className="menu-grid-btn" onClick={() => { setMainMenuOpen(false); setPatternModalOpen(true); }}><span style={{fontSize:24}}>📝</span>英文パターン</button>
-                                    <button className="menu-grid-btn" onClick={() => { setMainMenuOpen(false); setSizeTableOpen(true); }}><span style={{fontSize:24}}>📊</span>針サイズ表</button>
+                                    <button className="menu-grid-btn" onClick={() => { setMainMenuOpen(false); setPatternModalOpen(true); }}><span style={{fontSize:24}}>📝</span>パターン登録</button>
                                     <button className="menu-grid-btn" style={{color: "#34C759"}} onClick={() => { setMainMenuOpen(false); setSpellModalOpen(true); }}><span style={{fontSize:24}}>🔮</span>復活の呪文</button>
                                 </div>
-
                                 <div style={{ borderTop: `1px solid ${theme.gray}aa`, paddingTop: 20 }}>
-                                    <span style={{fontSize: 13, opacity: 0.6, display:"block", marginBottom: 8}}>作品名の編集</span>
-                                    <input type="text" value={currentProject.name} onChange={e => updateProject({...currentProject, name: e.target.value})} style={{width: "100%", padding:14, borderRadius:12, border:"none", background:theme.inputBg, color:theme.text, fontSize:16, marginBottom:15}} />
-                                    
+                                    作品名<input type="text" value={currentProject.name} onChange={e => updateProject({...currentProject, name: e.target.value})} style={{width: "100%", padding:14, borderRadius:12, border:"none", background:theme.inputBg, color:theme.text, fontSize:16, marginBottom:15}} />
                                     <div style={{display:"flex", gap:12, marginBottom:15}}>
-                                        <div style={{flex:1}}>
-                                            <span style={{fontSize: 12, opacity: 0.5}}>段数の修正</span>
-                                            <input type="number" value={currentProject.count} onChange={e => updateProject({...currentProject, count: Number(e.target.value)})} style={{width: "100%", padding:12, borderRadius:12, border:"none", background:theme.inputBg, color:theme.text, fontSize:16, textAlign:"center", fontWeight:"bold"}} />
-                                        </div>
-                                        <div style={{flex:1}}>
-                                            <span style={{fontSize: 12, opacity: 0.5}}>手動目標段数</span>
-                                            <input type="number" value={currentProject.targetCount || 0} onChange={e => updateProject({...currentProject, targetCount: Number(e.target.value)})} style={{width: "100%", padding:12, borderRadius:12, border:"none", background:theme.inputBg, color:theme.text, fontSize:16, textAlign:"center", fontWeight:"bold"}} />
-                                        </div>
+                                        <div style={{flex:1}}><span style={{fontSize: 12, opacity: 0.5}}>段数修正</span><input type="number" value={currentProject.count} onChange={e => updateProject({...currentProject, count: Number(e.target.value)})} style={{width: "100%", padding:12, borderRadius:12, border:"none", background:theme.inputBg, color:theme.text, fontSize:16, textAlign:"center"}} /></div>
+                                        <div style={{flex:1}}><span style={{fontSize: 12, opacity: 0.5}}>目標段数</span><input type="number" value={currentProject.targetCount || 0} onChange={e => updateProject({...currentProject, targetCount: Number(e.target.value)})} style={{width: "100%", padding:12, borderRadius:12, border:"none", background:theme.inputBg, color:theme.text, fontSize:16, textAlign:"center"}} /></div>
                                     </div>
-
-                                    <button onClick={() => { const n = { id: Date.now(), name: "作品" + (projects.length + 1), count: 0, targetCount: 0, history: [], rules: [], rawPatternText: "", currentPartIndex: 0, memo: "" }; setProjects([...projects, n]); setSelectedId(n.id); setMainMenuOpen(false); }} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.accent, color: "#FFF", marginBottom: 10, fontWeight: "bold", fontSize: 15 }}>＋ 新しい作品を追加</button>
-                                    <button onClick={() => { setDarkMode(!darkMode); setMainMenuOpen(false); }} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.gray, color: theme.text, marginBottom: 10, fontWeight: "bold", fontSize: 15 }}>モード切替: {darkMode ? "ライト" : "ダーク"}</button>
-                                    <button onClick={() => { if(confirm("選択中の作品を削除しますか？")){ const next = projects.filter(p=>p.id!==selectedId); setProjects(next.length?next:[{id:Date.now(), name:"作品1", count:0, targetCount:0, rules:[], history:[], rawPatternText: "", currentPartIndex: 0, memo: "" }]); setSelectedId(next[0]?.id || Date.now()); setMainMenuOpen(false); } }} style={{ width: "100%", padding: 14, border: "none", background: "#FF3B3015", color: theme.danger, borderRadius: 12, fontWeight: "bold", fontSize: 15 }}>作品を削除</button>
+                                    <button onClick={() => { const n = { id: Date.now(), name: "新作品", count: 0, targetCount: 0, history: [], rules: [], rawPatternText: "", currentPartIndex: 0, memo: "" }; setProjects([...projects, n]); setSelectedId(n.id); setMainMenuOpen(false); }} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.accent, color: "#FFF", marginBottom: 10, fontWeight: "bold" }}>＋ 作品追加</button>
+                                    <button onClick={() => { setDarkMode(!darkMode); setMainMenuOpen(false); }} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.gray, color: theme.text, marginBottom: 10, fontWeight: "bold" }}>モード切替</button>
+                                    <button onClick={() => { if(confirm("作品を削除？")){ const next = projects.filter(p=>p.id!==selectedId); setProjects(next.length?next:[{id:Date.now(), name:"作品1", count:0, targetCount:0, rules:[], history:[], rawPatternText: "", currentPartIndex: 0, memo: "" }]); setSelectedId(next[0]?.id || Date.now()); setMainMenuOpen(false); } }} style={{ width: "100%", padding: 14, border: "none", background: "#FF3B3015", color: theme.danger, borderRadius: 12, fontWeight: "bold" }}>作品を削除</button>
                                 </div>
                                 <button onClick={() => setMainMenuOpen(false)} style={{ width: "100%", padding: 15, border: "none", background: "none", color: theme.text, opacity:0.5, marginTop: 10 }}>閉じる</button>
                             </div>
@@ -530,20 +490,11 @@
                     {memoModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setMemoModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "85vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
-                                <h3 style={{ marginTop: 0, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>💭 作品メモ ({currentProject.name})</h3>
-                                <div style={{ width: "100%", overflow: "visible" }}>
-                                    <textarea 
-                                        ref={textareaRef}
-                                        value={memoInput} 
-                                        onChange={e => setMemoInput(e.target.value)} 
-                                        placeholder="例：針は4.0mmを使用 / 毛糸ロット2A / 緩めに編むこと..." 
-                                        className="auto-grow-textarea"
-                                        style={{ background: theme.inputBg, color: theme.text }}
-                                    />
-                                </div>
+                                <h3 style={{ marginTop: 0, marginBottom: 8 }}>💭 作品メモ ({currentProject.name})</h3>
+                                <textarea ref={textareaRef} value={memoInput} onChange={e => setMemoInput(e.target.value)} placeholder="メモを入力..." className="auto-grow-textarea" style={{ background: theme.inputBg, color: theme.text }} />
                                 <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                                     <button onClick={() => { setMemoInput(""); updateProject({ ...currentProject, memo: "" }); setMemoModalOpen(false); }} style={{ flex: 1, padding: 16, background: theme.danger + "15", color: theme.danger, border: "none", borderRadius: 15, fontWeight: "bold" }}>クリア</button>
-                                    <button onClick={() => { updateProject({ ...currentProject, memo: memoInput }); setMemoModalOpen(false); }} style={{ flex: 2, padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>メモを保存</button>
+                                    <button onClick={() => { updateProject({ ...currentProject, memo: memoInput }); setMemoModalOpen(false); }} style={{ flex: 2, padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>保存</button>
                                 </div>
                             </div>
                         </div>
@@ -552,16 +503,11 @@
                     {patternModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setPatternModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-                                <h3 style={{ marginTop: 0 }}>英文パターンの登録</h3>
-                                <textarea 
-                                    value={patternInput} 
-                                    onChange={e => setPatternInput(e.target.value)} 
-                                    placeholder="ここに翻訳テキストをペーストしてください" 
-                                    style={{ width: "100%", height: "200px", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 14, fontFamily: "monospace", resize: "none" }}
-                                />
+                                <h3 style={{ marginTop: 0 }}>英文パターン登録</h3>
+                                <textarea value={patternInput} onChange={e => setPatternInput(e.target.value)} placeholder="内容を貼り付け..." style={{ width: "100%", height: "200px", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 14 }} />
                                 <div style={{ display: "flex", gap: 10, marginTop: 15 }}>
-                                    <button onClick={() => { setPatternInput(""); updateProject({ ...currentProject, rawPatternText: "", currentPartIndex: 0 }); setPatternModalOpen(false); }} style={{ flex: 1, padding: 16, background: theme.danger + "15", color: theme.danger, border: "none", borderRadius: 15, fontWeight: "bold" }}>クリア</button>
-                                    <button onClick={() => { updateProject({ ...currentProject, rawPatternText: patternInput, currentPartIndex: 0 }); setPatternModalOpen(false); }} style={{ flex: 2, padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>パターンを適用</button>
+                                    <button onClick={() => { setPatternInput(""); updateProject({ ...currentProject, rawPatternText: "", currentPartIndex: 0 }); setPatternModalOpen(false); }} style={{ flex: 1, padding: 16, background: theme.danger + "15", color: theme.danger, border: "none", borderRadius: 15, fontWeight: "bold" }}>消去</button>
+                                    <button onClick={() => { updateProject({ ...currentProject, rawPatternText: patternInput, currentPartIndex: 0 }); setPatternModalOpen(false); }} style={{ flex: 2, padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>適用</button>
                                 </div>
                             </div>
                         </div>
@@ -570,30 +516,15 @@
                     {ruleModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setRuleModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card }} onClick={e => e.stopPropagation()}>
-                                <h3 style={{ marginTop: 0 }}>ルールの設定</h3>
-                                <label style={{display:"flex", alignItems:"center", gap:10, marginBottom:15, background:theme.inputBg, padding:15, borderRadius:15}}>
-                                    <input type="checkbox" checked={isPatternMode} onChange={e => setIsPatternMode(e.target.checked)} style={{width:22, height:22}} />
-                                    <span style={{fontWeight:"bold"}}>編み込みモード (カウンターに常時表示)</span>
-                                </label>
-                                <div style={{ display: "flex", gap: 10, marginBottom: 15 }}>
-                                    <StepInput label="開始段" value={ruleStart} onChange={setRuleStart} />
-                                    <StepInput label="間隔" value={ruleEvery} onChange={setRuleEvery} />
-                                    <StepInput label="回数(0=無)" value={ruleTimes} onChange={setRuleTimes} />
-                                </div>
-                                内容<input type="text" value={ruleAction} onChange={e => setRuleAction(e.target.value)} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, fontSize: 16, marginTop: 5, marginBottom: 15 }} />
-                                <div style={{ marginBottom: 20, textAlign: "center", background: theme.inputBg, padding: "12px", borderRadius: "14px", border: `1px dashed ${theme.accent}44` }}>
-                                    <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4 }}>対象段数のプレビュー</div>
-                                    <div style={{ fontSize: 15, fontWeight: "bold", color: theme.accent }}>{rulePreview || "間隔を入力してください"}</div>
-                                </div>
-                                <div style={{display:"flex", gap: 10}}>
-                                    {editingRuleIndex !== null && ( <button onClick={() => { updateProject({...currentProject, rules: currentProject.rules.filter((_, idx) => idx !== editingRuleIndex)}); setRuleModalOpen(false); }} style={{ flex: 1, padding: 16, background: theme.danger+"15", color: theme.danger, border: "none", borderRadius: 15, fontWeight: "bold" }}>削除</button> )}
-                                    <button onClick={() => {
-                                        const newRule = {start: ruleStart, every: ruleEvery, times: ruleTimes, action: ruleAction, isPattern: isPatternMode};
-                                        let newRules = [...(currentProject.rules || [])];
-                                        if (editingRuleIndex !== null) newRules[editingRuleIndex] = newRule; else newRules.push(newRule);
-                                        updateProject({...currentProject, rules: newRules}); setRuleModalOpen(false);
-                                    }} style={{ flex: 2, padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>保存</button>
-                                </div>
+                                <h3 style={{ marginTop: 0 }}>ルール設定</h3>
+                                <div style={{ display: "flex", gap: 10, marginBottom: 15 }}><StepInput label="開始" value={ruleStart} onChange={setRuleStart} /><StepInput label="間隔" value={ruleEvery} onChange={setRuleEvery} /></div>
+                                内容<input type="text" value={ruleAction} onChange={e => setRuleAction(e.target.value)} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: theme.inputBg, color: theme.text, marginBottom: 15 }} />
+                                <button onClick={() => {
+                                    const nr = {start: ruleStart, every: ruleEvery, times: 0, action: ruleAction, isPattern: isPatternMode};
+                                    let rs = [...(currentProject.rules || [])];
+                                    if (editingRuleIndex !== null) rs[editingRuleIndex] = nr; else rs.push(nr);
+                                    updateProject({...currentProject, rules: rs}); setRuleModalOpen(false);
+                                }} style={{ width: "100%", padding: 16, background: theme.accent, color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>保存</button>
                             </div>
                         </div>
                     )}
@@ -601,35 +532,20 @@
                     {sizeTableOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setSizeTableOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-                                <h3 style={{ marginTop: 0, textAlign: "center" }}>針のサイズ対応表 (日本規格)</h3>
+                                <h3 style={{ textAlign: "center" }}>針サイズ表</h3>
                                 <div style={{ display: "flex", background: theme.inputBg, padding: 4, borderRadius: 12, marginBottom: 15 }}>
-                                    <button onClick={() => setSizeTab("crochet")} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 10, fontWeight: "bold", fontSize: 14, background: sizeTab === "crochet" ? theme.card : "transparent", color: theme.text }}>かぎ針・レース針</button>
-                                    <button onClick={() => setSizeTab("knitting")} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 10, fontWeight: "bold", fontSize: 14, background: sizeTab === "knitting" ? theme.card : "transparent", color: theme.text }}>棒針</button>
+                                    <button onClick={() => setSizeTab("crochet")} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 10, background: sizeTab === "crochet" ? theme.card : "transparent", color: theme.text }}>かぎ針</button>
+                                    <button onClick={() => setSizeTab("knitting")} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 10, background: sizeTab === "knitting" ? theme.card : "transparent", color: theme.text }}>棒針</button>
                                 </div>
-                                {sizeTab === "crochet" ? (
-                                    <div>
-                                        <h4 style={{ margin: "10px 0 5px", fontSize: 13, opacity: 0.7 }}>◆ かぎ針</h4>
-                                        <table className="size-table">
-                                            <thead><tr><th>号数</th><th>ミリメートル(mm)</th></tr></thead>
-                                            <tbody>
-                                                <tr><td>2/0号</td><td>2.0 mm</td></tr><tr><td>3/0号</td><td>2.3 mm</td></tr>
-                                                <tr><td>4/0号</td><td>2.5 mm</td></tr><tr><td>5/0号</td><td>3.0 mm</td></tr>
-                                                <tr><td>6/0号</td><td>3.5 mm</td></tr><tr><td>7/0号</td><td>4.0 mm</td></tr>
-                                                <tr><td>7.5/0号</td><td>4.5 mm</td></tr><tr><td>8/0号</td><td>5.0 mm</td></tr>
-                                                <tr><td>9/0号</td><td>5.5 mm</td></tr><tr><td>10/0号</td><td>6.0 mm</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ) : (
-                                    <table className="size-table">
-                                        <thead><tr><th>号数</th><th>ミリメートル(mm)</th></tr></thead>
-                                        <tbody>
-                                            <tr><td>0号</td><td>2.1 mm</td></tr><tr><td>1号</td><td>2.4 mm</td></tr>
-                                            <tr><td>2号</td><td>2.7 mm</td></tr><tr><td>3号</td><td>3.0 mm</td></tr>
-                                        </tbody>
-                                    </table>
-                                )}
-                                <button onClick={() => setSizeTableOpen(false)} style={{ width: "100%", padding: 16, background: theme.accent, color: "white", borderRadius: 15, border: "none", fontWeight: "bold", marginTop: 20 }}>閉じる</button>
+                                <table className="size-table">
+                                    <thead><tr><th>号数</th><th>mm</th></tr></thead>
+                                    <tbody>{sizeTab === "crochet" ? (
+                                        <tr><td>2/0号</td><td>2.0mm</td></tr>
+                                    ) : (
+                                        <tr><td>0号</td><td>2.1mm</td></tr>
+                                    )}</tbody>
+                                </table>
+                                <button onClick={() => setSizeTableOpen(false)} style={{ width: "100%", padding: 16, background: theme.accent, color: "white", borderRadius: 15, fontWeight: "bold", marginTop: 20 }}>閉じる</button>
                             </div>
                         </div>
                     )}
@@ -637,36 +553,11 @@
                     {spellModalOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1100, backdropFilter: "blur(4px)" }} onClick={() => setSpellModalOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-                                <h3 style={{ marginTop: 0, marginBottom: 5 }}>🔮 復活の呪文（作品ごと）</h3>
-                                <p style={{ fontSize: 12, opacity: 0.6, marginTop: 0, marginBottom: 15, lineHieght: "1.4" }}>
-                                    選択中の「<b>{currentProject.name}</b>」のデータだけを呪文にします。別の端末で唱えると、既存のデータを消さずに、新しい作品としてリストに追加されます！
-                                </p>
-                                
-                                <div style={{ background: theme.inputBg, padding: 15, borderRadius: 15, marginBottom: 20 }}>
-                                    <span style={{ fontSize: 11, fontWeight: "bold", opacity: 0.5, display: "block", marginBottom: 5 }}>【現在選んでいる作品の呪文（コピー用）】</span>
-                                    <textarea 
-                                        readOnly 
-                                        value={generateSingleSpell()} 
-                                        onClick={e => { e.target.select(); document.execCommand('copy'); alert('📋 この作品の呪文をコピーしました！LINEやメール等で送ってください。'); }}
-                                        style={{ width: "100%", height: "80px", border: "none", background: "none", color: theme.text, fontSize: 12, fontFamily: "monospace", resize: "none", wordBreak: "break-all" }}
-                                    />
-                                    <span style={{ fontSize: 10, color: theme.accent, display: "block", textAlign: "right", marginTop: 4 }}>※タップで自動コピー</span>
-                                </div>
-
-                                <div style={{ background: theme.inputBg, padding: 15, borderRadius: 15, marginBottom: 20 }}>
-                                    <span style={{ fontSize: 11, fontWeight: "bold", opacity: 0.5, display: "block", marginBottom: 5 }}>【受け取った呪文を唱える（新しい作品として追加）】</span>
-                                    <textarea 
-                                        value={spellInput} 
-                                        onChange={e => setSpellInput(e.target.value)} 
-                                        placeholder="ここにコピーした作品の呪文コードを貼り付けてください" 
-                                        style={{ width: "100%", height: "80px", border: "none", background: "none", color: theme.text, fontSize: 12, fontFamily: "monospace", resize: "none", wordBreak: "break-all" }}
-                                    />
-                                </div>
-
-                                <div style={{ display: "flex", gap: 10 }}>
-                                    <button onClick={() => setSpellModalOpen(false)} style={{ flex: 1, padding: 16, background: theme.gray, color: theme.text, border: "none", borderRadius: 15, fontWeight: "bold" }}>キャンセル</button>
-                                    <button onClick={() => applySingleSpell(spellInput)} style={{ flex: 2, padding: 16, background: "#34C759", color: "white", border: "none", borderRadius: 15, fontWeight: "bold" }}>呪文を唱えて追加</button>
-                                </div>
+                                <h3 style={{ marginTop: 0 }}>🔮 復活の呪文（作品ごと）</h3>
+                                <textarea readOnly value={generateSingleSpell()} onClick={e => { e.target.select(); document.execCommand('copy'); alert('📋 コピーしました'); }} style={{ width: "100%", height: "80px", border: "none", background: theme.inputBg, color: theme.text, fontSize: 12, wordBreak: "break-all", padding:10, borderRadius:10 }} />
+                                <textarea value={spellInput} onChange={e => setSpellInput(e.target.value)} placeholder="呪文を貼り付け..." style={{ width: "100%", height: "80px", border: "none", background: theme.inputBg, color: theme.text, fontSize: 12, wordBreak: "break-all", padding:10, borderRadius:10, marginTop:15 }} />
+                                <button onClick={() => applySingleSpell(spellInput)} style={{ width: "100%", padding: 16, background: "#34C759", color: "white", border: "none", borderRadius: 15, fontWeight: "bold", marginTop:15 }}>呪文を唱えて追加</button>
+                                <button onClick={() => setSpellModalOpen(false)} style={{ width: "100%", padding: 15, background: "none", color: theme.text, opacity:0.5 }}>閉じる</button>
                             </div>
                         </div>
                     )}
@@ -674,16 +565,13 @@
                     {scheduleOpen && (
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }} onClick={() => setScheduleOpen(false)}>
                             <div style={{ width: "100%", borderTopLeftRadius: "30px", borderTopRightRadius: "30px", padding: "25px", background: theme.card, maxHeight: "70vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-                                <h3 style={{ marginTop: 0, textAlign: "center" }}>今後の予定</h3>
-                                {allMilestones.filter(m => m.step > currentProject.count && !m.isPattern).slice(0, 20).map((m, i) => (
-                                    <div key={i} style={{ display: "flex", padding: "15px", borderRadius: 15, marginBottom: 8, background: i === 0 ? theme.accent : theme.inputBg, color: i === 0 ? "#FFF" : theme.text }}>
-                                        <div style={{display:"flex", justifyContent:"space-between", width:"100%"}}>
-                                            <span style={{ fontWeight: i === 0 ? "bold" : "normal" }}>{m.step}段目</span>
-                                            <span>{m.action}</span>
-                                        </div>
+                                <h3 style={{ textAlign: "center" }}>予定</h3>
+                                {allMilestones.filter(m => m.step > currentProject.count && !m.isPattern).slice(0, 10).map((m, i) => (
+                                    <div key={i} style={{ display: "flex", justifyContent:"space-between", padding: "15px", borderRadius: 15, marginBottom: 8, background: i === 0 ? theme.accent : theme.inputBg, color: i === 0 ? "#FFF" : theme.text }}>
+                                        <span>{m.step}段目</span><span>{m.action}</span>
                                     </div>
                                 ))}
-                                <button onClick={() => setScheduleOpen(false)} style={{ width: "100%", padding: 18, background: theme.text, color: theme.bg, borderRadius: 15, border: "none", fontWeight: "bold", marginTop: 10 }}>閉じる</button>
+                                <button onClick={() => setScheduleOpen(false)} style={{ width: "100%", padding: 18, background: theme.text, color: theme.bg, borderRadius: 15, fontWeight: "bold", marginTop: 10 }}>閉じる</button>
                             </div>
                         </div>
                     )}
